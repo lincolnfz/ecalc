@@ -4,8 +4,9 @@ project(ECALC)
 #CMAKE_C_FLAGS：gcc编译选项
 #CMAKE_CXX_FLAGS：g++编译选项
 
-# 在CMAKE_CXX_FLAGS编译选项后追加-std=c++11
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -O0 -std=c++11")
+# 在CMAKE_CXX_FLAGS编译选项后追加 -std=c++11
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -O0")
+set(CMAKE_CXX_STANDARD 14)
 
 #CMAKE_BUILD_TYPE：编译类型(Debug, Release)
 # 设定编译类型为debug，因为在调试时需要选择debug
@@ -46,7 +47,7 @@ aux_source_directory(./src/3rd/uuid UUID)
 aux_source_directory(./src/Algorithm ALGORITHM)
 aux_source_directory(./src/emisc EMISC)
 # 编译SRC变量所代表的源代码文件，生成main可执行文件
-add_executable(main main.cpp ${SRC} ${EMISC} ${ALGORITHM} ${UUID})
+add_executable(main main.cpp test.cpp ${SRC} ${EMISC} ${ALGORITHM} ${UUID})
 
 # 将hello动态库文件链接到可执行文件main
 # libevent链接到主程序
@@ -54,7 +55,7 @@ set(LINK_LIBRARY "event.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "z.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "curl.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "crypto.a")
-set(LINK_LIBRARY ${LINK_LIBRARY} "pthread.a")
+set(LINK_LIBRARY ${LINK_LIBRARY} "pthread")
 set(LINK_LIBRARY ${LINK_LIBRARY} "dl")
 target_link_libraries(main ${LINK_LIBRARY})
 

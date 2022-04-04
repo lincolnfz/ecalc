@@ -10,6 +10,7 @@
 #include "emisc/misctool.h"
 #include <string.h>
 #include <mutex>
+#include <memory>
 #include "./emisc/FunDelegate.h"
 
 enum eErrServer{
@@ -52,11 +53,12 @@ struct tcpClient{
             event_free(this->write_ev);
         if(this->notify_close_ev)
             event_free(this->notify_close_ev);
-        delete ctx;
+        if(this->ctx)
+            delete this->ctx;
     }
 };
 
-typedef std::unordered_map<std::string, tcpClient*> ClientsUnorderMap;
+typedef std::unordered_map<std::string, std::unique_ptr<tcpClient>> ClientsUnorderMap;
 
 class eTcpSrvLayer{
 public:

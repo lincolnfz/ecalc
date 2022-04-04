@@ -1,6 +1,7 @@
 #include "eTcpSrvLayer.h"
 #include <event2/bufferevent.h>
 #include <event2/event.h>
+#include <memory>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -201,15 +202,14 @@ void eTcpSrvLayer::listener_cb(struct evconnlistener *listener, evutil_socket_t 
      }
 
     
-    tcpClient* client = new tcpClient(bev, write_ev, notify_close_ev, ctx,  key.c_str());
+    std::unique_ptr<tcpClient> client(new tcpClient(bev, write_ev, notify_close_ev, ctx,  key.c_str()));
     //std::pair<ClientsUnorderMap::iterator, bool> res = self->clinetsCollect_.insert(std::pair<std::string, tcpClient*>(key, client));
     self->_clients_mutex.lock();
     std::pair<ClientsUnorderMap::iterator, bool> res = 
-            self->_clinetsCollect.emplace(key, client);
+            self->_clinetsCollect.emplace(key, std::move(client));
     if(!res.second){
         self->_clients_mutex.unlock();
         fprintf(stderr, "Error clinetsCollect_ insert fail !\n");
-        delete client;
         return;
     }
     self->_clients_mutex.unlock();

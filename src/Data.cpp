@@ -8,6 +8,8 @@ Data::Data(/* args */)
 
 Data::~Data()
 {
+    int i = 0;
+    fprintf(stderr,  "~Data call \n");
 }
 
 void Data::Recv(){

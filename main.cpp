@@ -77,6 +77,7 @@
 #include "./src/3rd/uuid/uuid.h"
 #include "./src/emisc/FunDelegate.h"
 #include "./src/emisc/event.h"
+#include "test.h"
 //test
 
 static const char MESSAGE[] = "Hello, World!\n";
@@ -126,6 +127,11 @@ void tt(const char* file, const char* line){
 int main(int argc, char** argv){
 	{
 		//test code
+		//test();
+		//test_mutex();
+		test_unique_ptr();
+		printf("done\n");
+    	return 0;
 		eEvent* eve = eEvent::CreateEvent(777, false, false, nullptr);
 		long to = eEvent::WaitForSingleObject(eve, 1000);
 		_ASSERT(true);
