@@ -1,5 +1,6 @@
 #include "Data.h"
 #include <stdio.h>
+#include <iostream>
 
 Data::Data(/* args */)
 {
@@ -8,8 +9,7 @@ Data::Data(/* args */)
 
 Data::~Data()
 {
-    int i = 0;
-    fprintf(stderr,  "~Data call \n");
+    std::cout << "~Data call" << i <<  std::endl;
 }
 
 void Data::Recv(){

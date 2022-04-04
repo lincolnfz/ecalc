@@ -129,9 +129,11 @@ int main(int argc, char** argv){
 		//test code
 		//test();
 		//test_mutex();
+		//thread_product_test();
 		test_unique_ptr();
 		printf("done\n");
-    	return 0;
+		test_Priority_Message_Queue();
+    	//return 0;
 		eEvent* eve = eEvent::CreateEvent(777, false, false, nullptr);
 		long to = eEvent::WaitForSingleObject(eve, 1000);
 		_ASSERT(true);
@@ -166,6 +168,7 @@ int main(int argc, char** argv){
 		labdatest( [](int x, int y) -> bool{
 			return true;
 		} );
+		return 0;
 	}
 
 
