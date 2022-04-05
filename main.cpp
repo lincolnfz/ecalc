@@ -130,6 +130,7 @@ int main(int argc, char** argv){
 		//test();
 		//test_mutex();
 		//thread_product_test();
+		test_ring_buf();
 		test_unique_ptr();
 		printf("done\n");
 		test_Priority_Message_Queue();

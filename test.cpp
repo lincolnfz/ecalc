@@ -14,6 +14,7 @@
 #include <list>
 #include "./src/eDataLayer.h"
 #include "./src/eTcpSrvLayer.h"
+#include "./src/ePackage.h"
 
 std::mutex g_mutex;
 
@@ -202,4 +203,23 @@ int test_Priority_Message_Queue(){
 
 int test_tcp_srv(){
     eTcpSrvLayer srv;
+}
+
+int test_ring_buf(){
+    int len = 0;
+    ring_buf_t ring_buf;
+    unsigned char buf[1024];
+    unsigned char wbuf[700];
+
+    len = ring_buf_create(&ring_buf, buf, sizeof(buf));
+
+    len = ring_buf_put(&ring_buf, wbuf, sizeof(wbuf));
+
+    len = ring_buf_put(&ring_buf, wbuf, sizeof(wbuf));
+
+    len - ring_buf_get(&ring_buf, wbuf, sizeof(wbuf));
+
+    len = ring_buf_put(&ring_buf, wbuf, sizeof(wbuf));
+
+    int i = 0;
 }

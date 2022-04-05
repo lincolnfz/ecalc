@@ -11,6 +11,12 @@ template<class META_Message>
 class eDataLayer{
 
 public:
+    enum ERR_DATA_LAYER{
+        ERR_ZERO = 0,
+        ERR_DIFFERENT_TID = 1,
+    };
+
+public:
     class I_Process_Data_Base{
     public:
         I_Process_Data_Base(){
@@ -98,7 +104,7 @@ public:
             std::unique_lock<std::mutex> guard(_Queue_lock);
             return _message_Queue.size();
         } 
-    };
+    }; //Priority_Message_Queue over.
 
 public:
     eDataLayer(){
@@ -117,7 +123,8 @@ public:
     void RunMsgPump(){
         _ASSERT(_in);
         _ASSERT(_out);
-        std::thread gen_data_thread(_in->runGenerateData, this);
+        eDataLayer<META_Message> *self = this;
+        std::thread gen_data_thread(_in->runGenerateData, self);
         _in_tid = gen_data_thread.get_id();
         _out_tid = std::this_thread::get_id();
         while(true){
@@ -142,7 +149,8 @@ public:
     }
 
     // in模块(外部数据)写进来的
-    void WriteIn_Data(std::shared_ptr<META_Message> newData, int priority){
+    ERR_DATA_LAYER WriteIn_Data(std::shared_ptr<META_Message> newData, const int priority){
+        ERR_DATA_LAYER  err = ERR_ZERO;
         std::thread::id curr_tid = std::this_thread::get_id();
         if(curr_tid == _in_tid){
             _queue.PushMsg(newData, priority);
@@ -150,10 +158,13 @@ public:
             _thread_con.notify_one();
             lock.unlock();
         }else{
+            err = ERR_DIFFERENT_TID;
             _ASSERT(false);
             //direct writein queue????
         }
+        return err;
     }
+    
 
 private:
     Priority_Message_Queue _queue;
