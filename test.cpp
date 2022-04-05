@@ -10,6 +10,7 @@
 #include "./src/Data.h"
 #include <list>
 #include "./src/eDataLayer.h"
+#include "./src/eTcpSrvLayer.h"
 
 std::mutex g_mutex;
 
@@ -121,7 +122,7 @@ int thread_product_test() {
     return 0;
 }
 
-Priority_Message_Queue<Data> test_queue;
+eDataLayer<Data>::Priority_Message_Queue test_queue;
 
 void create_data(std::condition_variable* q_con){
     int product_id = 0;
@@ -130,17 +131,17 @@ void create_data(std::condition_variable* q_con){
         std::unique_ptr<Data> gen_msg(new Data(product_id));
         //std::cout << "生产数据" << product_id <<  std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        test_queue.Add(std::move(gen_msg), ++priority);
-        {
+        test_queue.PushMsg(std::move(gen_msg), ++priority);
+        /*{
             std::unique_ptr<Data> gen_msg(new Data(2));
-            test_queue.Add(std::move(gen_msg), 166);
+            test_queue.Add(std::move(gen_msg), 101);
             std::unique_ptr<Data> gen_msg22(new Data(4));
-            test_queue.Add(std::move(gen_msg22), 156);
+            test_queue.Add(std::move(gen_msg22), 101);
             std::unique_ptr<Data> gen_msg33(new Data(5));
-            test_queue.Add(std::move(gen_msg33), 156);
+            test_queue.Add(std::move(gen_msg33), 101);
             //std::unique_ptr<Data> msg = std::move(test_queue.PeekMsg());
             int i = 0;
-        }
+        }*/
         std::unique_lock<std::mutex> lock(g_mutex);
         q_con->notify_one();
         lock.unlock();
@@ -156,7 +157,7 @@ int test_Priority_Message_Queue(){
     while(true){
         std::unique_lock<std::mutex> lock(g_mutex);
         while(test_queue.Get_Length() > 0){
-            std::unique_ptr<Data> msg = std::move(test_queue.PeekMsg());
+            std::unique_ptr<Data> msg = std::move(test_queue.PullMsg());
             if(msg){
                 std::cout << "处理数据" << msg->i <<  std::endl;
                 ++proc_num;
@@ -170,4 +171,8 @@ int test_Priority_Message_Queue(){
     }
     t1.join();
     return 0;
+}
+
+int test_tcp_srv(){
+    eTcpSrvLayer srv;
 }

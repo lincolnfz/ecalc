@@ -12,6 +12,8 @@
 #include <mutex>
 #include <memory>
 #include "./emisc/FunDelegate.h"
+#include "eDataLayer.h"
+#include "ePackage.h"
 
 enum eErrServer{
         NO_ERROR = 0,
@@ -60,11 +62,13 @@ struct tcpClient{
 
 typedef std::unordered_map<std::string, std::unique_ptr<tcpClient>> ClientsUnorderMap;
 
-class eTcpSrvLayer{
+class eTcpSrvLayer : public eDataLayer<eSocketPackage>::I_Generate_Data_Base {
 public:
     
     eTcpSrvLayer();
     virtual ~eTcpSrvLayer();
+
+    virtual void runGenerateData(const eDataLayer<eSocketPackage> *ctx) override;
     eErrServer Run(const int port);
 
     eErrServer SendData2Client(const char* szKey, const char* msg, const int msg_len, TClsMemFnDelegate_0Param<void> cb);
@@ -85,4 +89,6 @@ private:
 	struct evconnlistener *_listener;
     ClientsUnorderMap _clinetsCollect;
     std::mutex _clients_mutex;
+
+    eDataLayer<eSocketPackage> *_datalayer = nullptr;
 };

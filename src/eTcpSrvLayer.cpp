@@ -83,6 +83,11 @@ struct event_base_ctx{
     eTcpSrvLayer* inst;
 };
 
+void eTcpSrvLayer::runGenerateData(const eDataLayer<eSocketPackage> *ctx){
+    _datalayer = const_cast<eDataLayer<eSocketPackage> *>(ctx);
+    Run(9666);
+}
+
 eErrServer eTcpSrvLayer::Run(const int port){
     struct event_config *cfg = nullptr;
     cfg = event_config_new();
