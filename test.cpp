@@ -206,14 +206,22 @@ int test_tcp_srv(){
 }
 
 int test_ring_buf(){
-    int len = 0;
+    unsigned int len = 0;
     ring_buf_t ring_buf;
     unsigned char buf[1024];
     unsigned char wbuf[700];
 
+    len = sizeof(unsigned long);
+
+    len = 0xffffffffffffffff + 5;
+
     len = ring_buf_create(&ring_buf, buf, sizeof(buf));
 
     len = ring_buf_put(&ring_buf, wbuf, sizeof(wbuf));
+
+    len = ring_buf_put(&ring_buf, wbuf, sizeof(wbuf));
+
+    len - ring_buf_get(&ring_buf, wbuf, sizeof(wbuf));
 
     len = ring_buf_put(&ring_buf, wbuf, sizeof(wbuf));
 
