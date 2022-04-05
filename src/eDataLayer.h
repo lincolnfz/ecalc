@@ -20,7 +20,7 @@ public:
         };
 
         //hadleNotifyMsg 工作在eDataLayer线程
-        virtual void hadleNotifyMsg(std::unique_ptr<META_Message>) = 0;
+        virtual void hadleNotifyMsg(std::shared_ptr<META_Message>) = 0;
     };
 
     class I_Generate_Data_Base{
@@ -45,7 +45,7 @@ public:
     class Priority_Message_Queue{
     private:
         struct Entry{
-            std::unique_ptr<META_Message> pMsg;
+            std::shared_ptr<META_Message> pMsg;
             int priority;
             ~Entry(){
             };
@@ -66,37 +66,37 @@ public:
     public:
         Priority_Message_Queue() = default;
         ~Priority_Message_Queue() = default;
-        void PushMsg(std::unique_ptr<META_Message> pMsg, int priority) {
-                std::unique_lock<std::mutex> guard(_Queue_lock);
-                // Make an entry
-                Entry *entry = new Entry;
-                entry->pMsg = std::move(pMsg);
-                entry->priority = priority;
-                // Insert the element according to its priority
-                _message_Queue.push(entry);
+        void PushMsg(std::shared_ptr<META_Message> pMsg, int priority) {
+            std::unique_lock<std::mutex> guard(_Queue_lock);
+            // Make an entry
+            Entry *entry = new Entry;
+            entry->pMsg = pMsg;
+            entry->priority = priority;
+            // Insert the element according to its priority
+            _message_Queue.push(entry);
         }
         
-        std::unique_ptr<META_Message> PullMsg() {
-                std::unique_lock<std::mutex> guard(_Queue_lock);
-                std::unique_ptr<META_Message> pMsg;
+        std::shared_ptr<META_Message> PullMsg() {
+            std::unique_lock<std::mutex> guard(_Queue_lock);
+            std::shared_ptr<META_Message> pMsg;
+            
+            // Check if the message queue is not empty
+            if (!_message_Queue.empty()) {
+                // Queue is not empty so get a pointer to the
+                // first message in the queue
+                Entry* top_item = _message_Queue.top();
+                pMsg = top_item->pMsg;
                 
-                // Check if the message queue is not empty
-                if (!_message_Queue.empty()) {
-                    // Queue is not empty so get a pointer to the
-                    // first message in the queue
-                    Entry* top_item = _message_Queue.top();
-                    pMsg = std::move(top_item->pMsg);
-                    
-                    // Now remove the pointer from the message queue
-                    _message_Queue.pop();
-                    delete top_item;
-                }
-                return pMsg;
+                // Now remove the pointer from the message queue
+                _message_Queue.pop();
+                delete top_item;
+            }
+            return pMsg;
         }
         
         const size_t Get_Length() {
-                std::unique_lock<std::mutex> guard(_Queue_lock);
-                return _message_Queue.size();
+            std::unique_lock<std::mutex> guard(_Queue_lock);
+            return _message_Queue.size();
         } 
     };
 
@@ -114,25 +114,45 @@ public:
         _out = out;
     }
 
-    void RunPump(){
+    void RunMsgPump(){
         _ASSERT(_in);
         _ASSERT(_out);
         std::thread gen_data_thread(_in->runGenerateData, this);
-
+        _in_tid = gen_data_thread.get_id();
+        _out_tid = std::this_thread::get_id();
         while(true){
             std::unique_lock<std::mutex> lock(_data_lock);
             while(_queue.Get_Length() > 0){
-                std::unique_ptr<META_Message> msg = std::move(_queue.PullMsg());
+                std::shared_ptr<META_Message> msg = _queue.PullMsg();
                 if(msg){
-                    
+                    //收到数据提交处理
+                    if(_out){
+                        _out->hadleNotifyMsg(msg);
+                    }
                 }
                 //std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
             while(_queue.Get_Length() == 0){
+                //有可能收到假事件,所以再加上列队长度判断
                 _thread_con.wait(lock);
             }
         }
+        //gen_data_thread.get_id();
         gen_data_thread.join();
+    }
+
+    // in模块(外部数据)写进来的
+    void WriteIn_Data(std::shared_ptr<META_Message> newData, int priority){
+        std::thread::id curr_tid = std::this_thread::get_id();
+        if(curr_tid == _in_tid){
+            _queue.PushMsg(newData, priority);
+            std::unique_lock<std::mutex> lock(_data_lock);
+            _thread_con.notify_one();
+            lock.unlock();
+        }else{
+            _ASSERT(false);
+            //direct writein queue????
+        }
     }
 
 private:
@@ -142,10 +162,12 @@ private:
     //  _in --->--->-->---> _out
 
     //接收处理数据对像 如:(业务模块)
-    I_Process_Data_Base *_out;
+    I_Process_Data_Base *_out = nullptr;
+    std::thread::id _out_tid;
 
     //产生数据 如:(socket)
-    I_Generate_Data_Base *_in;
+    I_Generate_Data_Base *_in = nullptr;
+    std::thread::id _in_tid;
 
     std::mutex _data_lock;
     std::condition_variable _thread_con;

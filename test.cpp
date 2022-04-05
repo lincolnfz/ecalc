@@ -7,6 +7,9 @@
 #include <thread>
 #include <unordered_map>
 #include <condition_variable>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
 #include "./src/Data.h"
 #include <list>
 #include "./src/eDataLayer.h"
@@ -125,13 +128,14 @@ int thread_product_test() {
 eDataLayer<Data>::Priority_Message_Queue test_queue;
 
 void create_data(std::condition_variable* q_con){
+    long idd = syscall(SYS_gettid);
     int product_id = 0;
     int priority = 100;
     while (true) {
-        std::unique_ptr<Data> gen_msg(new Data(product_id));
+        std::shared_ptr<Data> gen_msg = std::make_shared<Data>(product_id);
         //std::cout << "生产数据" << product_id <<  std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        test_queue.PushMsg(std::move(gen_msg), ++priority);
+        test_queue.PushMsg(gen_msg, ++priority);
         /*{
             std::unique_ptr<Data> gen_msg(new Data(2));
             test_queue.Add(std::move(gen_msg), 101);
@@ -150,14 +154,37 @@ void create_data(std::condition_variable* q_con){
     }
 }
 
+struct shartptr{
+    std::shared_ptr<Data> data;
+    ~shartptr(){
+        int i = 0;
+    };
+};
+
 int test_Priority_Message_Queue(){
+    std::shared_ptr<Data> tmp;
+    {
+        shartptr * p = new shartptr;
+        p->data = std::make_shared<Data>(878);
+        //tmp = p->data;
+        delete p;
+    }
+    int xxxd = 9;
+    //return 0;
     std::condition_variable q_con;
     std::thread t1(create_data, &q_con);
+    std::thread::id tid = t1.get_id();
+    std::thread::id rid = std::this_thread::get_id();
+    bool tid_equal = tid == rid;
+    //std::thread::native_handle_type currnet_nid = std::thread::native_handle();
+    long idd = syscall(SYS_gettid);
+    
+
     int proc_num = 0;
     while(true){
         std::unique_lock<std::mutex> lock(g_mutex);
         while(test_queue.Get_Length() > 0){
-            std::unique_ptr<Data> msg = std::move(test_queue.PullMsg());
+            std::shared_ptr<Data> msg = test_queue.PullMsg();
             if(msg){
                 std::cout << "处理数据" << msg->i <<  std::endl;
                 ++proc_num;
