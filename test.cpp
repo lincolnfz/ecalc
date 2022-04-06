@@ -208,8 +208,17 @@ int test_tcp_srv(){
 int test_ring_buf(){
     unsigned int len = 0;
     ring_buf_t ring_buf;
-    unsigned char buf[1024];
+    unsigned char buf[600];
     unsigned char wbuf[700];
+
+    {
+        eSocketShareData test;
+        test.Write_RecvBuf(buf, sizeof(buf));
+        //test.Write_RecvBuf(buf, sizeof(buf));
+        //test.Write_RecvBuf(buf, sizeof(buf));
+        len = test.Read_RecvBuf(wbuf, sizeof(wbuf));
+        len = test.Read_RecvBuf(wbuf, sizeof(wbuf));
+    }
 
     len = sizeof(unsigned long);
 

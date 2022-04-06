@@ -1,14 +1,16 @@
 #include "ePackage.h"
+#include <mutex>
 #include <string.h>
 
 
-#define min(a,b) ( (a) < (b) )? (a):(b)     
+#define min(a,b) ( (a) < (b) )? (a):(b)
+#define max(a,b) ( (a) > (b) )? (a):(b)     
  
 /******************************************************************************
  *函数名   :ring_buf_init
  *函数功能 :构造一个空环形缓冲区
  *输入参数 :r 环形缓冲区控制块
- *返回值   :非0表示成功 
+ *返回值   :0表示成功 
  *****************************************************************************/
 int ring_buf_create(ring_buf_t *r,unsigned char *buf,unsigned int len)
 {
@@ -17,6 +19,35 @@ int ring_buf_create(ring_buf_t *r,unsigned char *buf,unsigned int len)
     r->front = r->rear = 0;
     return buf == nullptr;
 }
+
+/******************************************************************************
+ *函数名   :ring_buf_realloc
+ *函数功能 :重新构造一个空环形缓冲区
+ *输入参数 :r 环形缓冲区控制块
+ *返回值   :0表示成功 
+ *****************************************************************************/
+int ring_buf_realloc(ring_buf_t *old_r, ring_buf_t* new_r, unsigned char *new_buf,unsigned int new_size){
+    if(old_r->size >= new_size){
+        //新的ringbuf比原来的小,就不创建
+        return -1;
+    }
+    int ret = ring_buf_create(new_r, new_buf, new_size);
+    if(!ret){
+        while(true){
+            unsigned char szTmp[new_size];
+            unsigned int len = ring_buf_get(old_r, szTmp, sizeof(szTmp));
+            if(len > 0){
+                ring_buf_put(new_r, szTmp, len);
+            }else{
+                break;
+            }
+        }
+    }
+    
+
+    return ret;
+}
+
 /**********************************************************************
  *函数名   :ring_buf_clr
  *函数功能 :清空环形缓冲区 
@@ -30,13 +61,23 @@ void ring_buf_clr(ring_buf_t *r)
  
 /**********************************************************************
  *函数名   :ring_buf_len
- *函数功能 :计算环形缓冲区容量 (字节为单位)
+ *函数功能 :计算环形缓冲区有效容量 (字节为单位)
  *输入参数 :r.环形缓冲区控制块
  *返回值   :环形缓冲区中有效字节数 
  *********************************************************************/
 unsigned int ring_buf_len(ring_buf_t *r)
 {
     return r->rear - r->front;
+}
+
+/**********************************************************************
+ *函数名   :ring_buf_len
+ *函数功能 :计算环形缓冲区剩余容量 (字节为单位)
+ *输入参数 :r.环形缓冲区控制块
+ *返回值   :环形缓冲区中剩余字节数 
+ *********************************************************************/
+unsigned int ring_buf_remain(ring_buf_t *r){
+    return r->size - ring_buf_len(r);
 }
  
 /**********************************************************************
@@ -86,10 +127,83 @@ unsigned int ring_buf_get(ring_buf_t *r,unsigned char *buf,unsigned int len)
     return len;
 }
 
-eSocketPackage::eSocketPackage(){
-
+ePackageBase::ePackageBase(){
+    _pRecvBuf = new unsigned char[c_pack_size];
+    _pSendBuf = new unsigned char[c_pack_size];
+    _ring_recvbuf = new ring_buf_t;
+    _ring_sendbuf = new ring_buf_t;
+    int ret = ring_buf_create(_ring_recvbuf, _pRecvBuf, c_pack_size);
+    ret = ring_buf_create(_ring_sendbuf, _pSendBuf, c_pack_size);
 }
 
-eSocketPackage::~eSocketPackage(){
+ePackageBase::~ePackageBase(){
+    delete _ring_recvbuf;
+    delete _ring_sendbuf;
+    delete [] _pRecvBuf;
+    delete [] _pSendBuf;
+}
+
+unsigned int ePackageBase::Write_RecvBuf(unsigned char *buf, unsigned int len){
+    std::unique_lock<std::mutex> lock(_recvbuf_lock);
+    unsigned int put_len = ring_buf_remain(_ring_recvbuf);
+    if(put_len < len){
+        unsigned int old_size = _ring_recvbuf->size;
+        unsigned int new_len = max(old_size + c_pack_size, old_size + len + c_pack_size/2);
+        unsigned char *new_buf = new unsigned char[new_len];
+        ring_buf_t *new_ring_buf = new ring_buf_t;
+        ring_buf_realloc(_ring_recvbuf, new_ring_buf, new_buf, new_len);
+        put_len = ring_buf_put(new_ring_buf, buf, len);
+        delete _ring_recvbuf;
+        delete []_pRecvBuf;
+        _ring_recvbuf = new_ring_buf;
+        _pRecvBuf = new_buf;
+    }else{
+         put_len = ring_buf_put(_ring_recvbuf, buf, len);
+    }
+    return put_len;
+}
+
+unsigned int ePackageBase::Read_RecvBuf(unsigned char *buf, unsigned int len){
+    std::unique_lock<std::mutex> lock(_recvbuf_lock);
+    return ring_buf_get(_ring_recvbuf, buf, len);
+}
+
+unsigned int ePackageBase::Write_SendBuf(unsigned char *buf, unsigned int len){
+    std::unique_lock<std::mutex> lock(_sendbuf_lock);
+    unsigned int put_len = ring_buf_remain(_ring_sendbuf);
+    if(put_len < len){
+        unsigned int old_size = _ring_sendbuf->size;
+        unsigned int new_len = max(old_size + c_pack_size, old_size + len + c_pack_size/2);
+        unsigned char *new_buf = new unsigned char[new_len];
+        ring_buf_t *new_ring_buf = new ring_buf_t;
+        ring_buf_realloc(_ring_sendbuf, new_ring_buf, new_buf, new_len);
+        put_len = ring_buf_put(new_ring_buf, buf, len);
+        delete _ring_sendbuf;
+        delete []_pSendBuf;
+        _ring_sendbuf = new_ring_buf;
+        _pSendBuf = new_buf;
+    }else{
+        put_len = ring_buf_put(_ring_sendbuf, buf, len);
+    }
+    return put_len;
+}
+
+unsigned int ePackageBase::Read_SendBuf(unsigned char *buf, unsigned int len){
+    std::unique_lock<std::mutex> lock(_sendbuf_lock);
+    return ring_buf_get(_ring_sendbuf, buf, len);
+}
+
+eSocketShareData::eSocketShareData(){
     
+}
+
+eSocketShareData::~eSocketShareData(){
+    
+}
+
+void eSocketShareData::RunIfExec(){
+    if(_cb.isbind()){
+        _cb(_param_1, _param_2);
+        _cb.unbind();
+    }
 }

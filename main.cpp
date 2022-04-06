@@ -126,6 +126,21 @@ void tt(const char* file, const char* line){
 
 int main(int argc, char** argv){
 	{
+		//判断是否设置了-d，以daemon运行
+		/*if (httpd_option_daemon) {
+			pid_t pid;
+			pid = fork();
+			if (pid < 0) {
+				perror("fork failed");
+				exit(EXIT_FAILURE);
+			}
+			if (pid > 0) {
+				//生成子进程成功，退出父进程
+				exit(EXIT_SUCCESS);
+			}
+		}*/
+	}
+	{
 		//test code
 		//test();
 		//test_mutex();
@@ -149,12 +164,21 @@ int main(int argc, char** argv){
 		std::function<void()> funcptr;
 		bool hhhh = funcptr == nullptr;
 		TClsMemFnDelegate_0Param<void> a;
+		TClsMemFnDelegate_0Param<void> b;
 		hhhh = a.isbind();
+		
 		a.unbind();
 		a.unbind();
 		a.BindRaw(&tt, &Data::Recv);
 		hhhh = a.isbind();
 		tedo(a);
+
+		hhhh = b.isbind();
+		b.unbind();
+		b = a;
+		hhhh = b.isbind();
+		b();
+		tedo(b);
 
 		TClsMemFnDelegate_2Param<int, int, std::string> t2pam;
 		t2pam.BindRaw(&tt, &Data::test2parm);

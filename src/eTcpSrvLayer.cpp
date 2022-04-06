@@ -83,8 +83,8 @@ struct event_base_ctx{
     eTcpSrvLayer* inst;
 };
 
-void eTcpSrvLayer::runGenerateData(const eDataLayer<eSocketPackage> *ctx){
-    _datalayer = const_cast<eDataLayer<eSocketPackage> *>(ctx);
+void eTcpSrvLayer::runGenerateData(const eDataLayer<eSocketShareData> *ctx){
+    _datalayer = const_cast<eDataLayer<eSocketShareData> *>(ctx);
     Run(9666);
 }
 
@@ -133,13 +133,13 @@ eErrServer eTcpSrvLayer::Run(const int port){
     return NO_ERROR;
 }
 
-eErrServer eTcpSrvLayer::SendData2Client(const char* szKey, const char* msg, const int msg_len, TClsMemFnDelegate_0Param<void> cb){
+eErrServer eTcpSrvLayer::SendData2Client(const char* szKey, const unsigned char* msg, const unsigned int msg_len, TClsMemFnDelegate_0Param<void> cb){
     eErrServer errCode = NO_FIND_CLIENT;
     _clients_mutex.lock();
     ClientsUnorderMap::const_iterator got = _clinetsCollect.find(szKey);
     if( got != _clinetsCollect.end() ){
         errCode = NO_ERROR;
-        
+        got->second->sp_Package->Write_SendBuf( const_cast<unsigned char*>(msg), msg_len);
         int event = 0;
         //通知向客户端发送数据
         event_active(got->second->write_ev, event, 0);
@@ -234,6 +234,22 @@ void eTcpSrvLayer::conn_readcb(struct bufferevent *bev, void *user_data)
     msg[len] = '\0';
 
     printf("recv %s from server\n", msg);*/
+    eTcpSrvLayer *self = ctx->inst;
+    self->_clients_mutex.lock();
+    ClientsUnorderMap::const_iterator got = self->_clinetsCollect.find(ctx->szKey);
+    if( got != self->_clinetsCollect.end() ){
+        while(true){
+            unsigned char msg[8192];
+            unsigned long len = bufferevent_read(bev , msg, sizeof(msg));
+            if(len <= 0){
+                break;
+            }else{
+                got->second->sp_Package->Write_RecvBuf(msg, len);
+            }
+        }
+        self->_datalayer->WriteIn_Data(got->second->sp_Package, eDataLayer<eSocketShareData>::PRIORITY_LEVEL::PRIORITY_LEVEL_MID);
+    }
+    self->_clients_mutex.unlock();
 }
 
 void eTcpSrvLayer::conn_writecb(struct bufferevent *bev, void *user_data)
@@ -246,6 +262,13 @@ void eTcpSrvLayer::conn_writecb(struct bufferevent *bev, void *user_data)
 		printf("flushed answer\n");
 		bufferevent_free(bev);
 	}*/
+    eTcpSrvLayer *self = ctx->inst;
+    self->_clients_mutex.lock();
+    ClientsUnorderMap::const_iterator got = self->_clinetsCollect.find(ctx->szKey);
+    if( got != self->_clinetsCollect.end() ){
+        
+    }
+    self->_clients_mutex.unlock();
 }
 
 void eTcpSrvLayer::conn_eventcb(struct bufferevent *bev, short events, void *user_data)
@@ -281,8 +304,26 @@ void eTcpSrvLayer::client_notify_sendmsg_cb(int fd, short events, void* arg){
     //得到bufferevent指针,目的是为了写到bufferevent的写缓冲区
     //struct bufferevent* bev =  ;
 
-    //把终端的消息发送给服务器端
+    //向外sock发送数据
     //bufferevent_write(bev, msg, ret);
+    eTcpSrvLayer *self = ctx->inst;
+    self->_clients_mutex.lock();
+    ClientsUnorderMap::const_iterator got = self->_clinetsCollect.find(ctx->szKey);
+    if( got != self->_clinetsCollect.end() ){
+        struct bufferevent* bev = got->second->bev;
+        while(true){
+            unsigned char msg[8192];
+            unsigned int len = got->second->sp_Package->Read_SendBuf(msg, sizeof(msg));
+            //unsigned long len = bufferevent_read(bev , msg, sizeof(msg));
+            if( bufferevent_write(bev, msg, len) < 0 ){
+                //error here
+            }
+            if(len <= 0){
+                break;
+            }
+        }
+    }
+    self->_clients_mutex.unlock();
 }
 
 void eTcpSrvLayer::notify_close_client_cb(int fd, short events, void* arg){
@@ -297,6 +338,7 @@ bool eTcpSrvLayer::freeClient(const char* key, const int code){
     _clients_mutex.lock();
     ClientsUnorderMap::const_iterator got = _clinetsCollect.find(key);
     if( got != _clinetsCollect.end() ){
+        bufferevent_setcb(got->second->bev, nullptr, nullptr, nullptr, nullptr);
         //bufferevent_disable(got->second->bev, EV_READ|EV_WRITE);
         bufferevent_free(got->second->bev);
         event_free(got->second->write_ev);

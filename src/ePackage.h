@@ -15,10 +15,14 @@ typedef struct
 /*-------------------------外部接口声明----------------------------*/
 /*-------------------------ring_buf_t 长度尽量取 2^n  -------------*/ 
 int ring_buf_create(ring_buf_t *r,unsigned char *buf,unsigned int size);
+
+int ring_buf_realloc(ring_buf_t *old_r, ring_buf_t* new_r, unsigned char *new_buf,unsigned int new_size);
  
 void ring_buf_clr(ring_buf_t *r);
  
 unsigned int ring_buf_len(ring_buf_t *r);
+
+unsigned int ring_buf_remain(ring_buf_t *r);
  
 unsigned int ring_buf_put(ring_buf_t *r,unsigned char *buf,unsigned int len);
  
@@ -30,28 +34,36 @@ enum PackageType{
     PACKAGE_TYPE_FN = 1,
 };
 
+constexpr unsigned int c_pack_size = 8192; //8192 , 16384
 
 class ePackageBase{
 public:
-    ePackageBase(){
+    ePackageBase();
 
-    };
+    virtual ~ePackageBase();
 
-    virtual ~ePackageBase(){
+    unsigned int Write_RecvBuf(unsigned char *buf,unsigned int len);
+    unsigned int Read_RecvBuf(unsigned char *buf,unsigned int len);
 
-    };
+    unsigned int Write_SendBuf(unsigned char *buf,unsigned int len);
+    unsigned int Read_SendBuf(unsigned char *buf,unsigned int len);
+
 protected:
-    std::mutex _lock;
-    //PackageType _type;
+    std::mutex _recvbuf_lock, _sendbuf_lock;
+    unsigned char *_pRecvBuf;
+    unsigned char *_pSendBuf;
+    ring_buf_t *_ring_recvbuf;
+    ring_buf_t *_ring_sendbuf;
 };
 
-class eSocketPackage : public ePackageBase{
+class eSocketShareData : public ePackageBase{
 public:
-    eSocketPackage();
-    virtual ~eSocketPackage();
+    eSocketShareData();
+    virtual ~eSocketShareData();
+
+    void RunIfExec();
 
 private:
     TClsMemFnDelegate_2Param<void, std::string, std::string> _cb;
-    unsigned char _szRecvBuf[16384]; //2^14
-    unsigned char _szSendBuf[16384]; //2^14
+    std::string _param_1, _param_2;
 };

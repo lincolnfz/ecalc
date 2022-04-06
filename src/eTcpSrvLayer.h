@@ -41,11 +41,14 @@ struct tcpClient{
     struct event *notify_close_ev;
     client_ctx *ctx;
     std::string strKey;
+    std::shared_ptr<eSocketShareData> sp_Package;
+
     tcpClient(struct bufferevent *bev, struct event *write_ev, struct event *notify_close_ev, client_ctx* ctx, const char* pkey): strKey(pkey){
         this->bev = bev;
         this->write_ev = write_ev;
         this->notify_close_ev = notify_close_ev;
         this->ctx = ctx;
+        sp_Package = std::make_shared<eSocketShareData>();
     }
 
     ~tcpClient(){
@@ -62,16 +65,16 @@ struct tcpClient{
 
 typedef std::unordered_map<std::string, std::unique_ptr<tcpClient>> ClientsUnorderMap;
 
-class eTcpSrvLayer : public eDataLayer<eSocketPackage>::I_Generate_Data_Base {
+class eTcpSrvLayer : public eDataLayer<eSocketShareData>::I_Generate_Data_Base {
 public:
     
     eTcpSrvLayer();
     virtual ~eTcpSrvLayer();
 
-    virtual void runGenerateData(const eDataLayer<eSocketPackage> *ctx) override;
+    virtual void runGenerateData(const eDataLayer<eSocketShareData> *ctx) override;
     eErrServer Run(const int port);
 
-    eErrServer SendData2Client(const char* szKey, const char* msg, const int msg_len, TClsMemFnDelegate_0Param<void> cb);
+    eErrServer SendData2Client(const char* szKey, const unsigned char* msg, const unsigned int msg_len, TClsMemFnDelegate_0Param<void> cb);
     eErrServer CloseClient(const char* szKey, TClsMemFnDelegate_0Param<void> cb);
 
 protected:
@@ -90,5 +93,5 @@ private:
     ClientsUnorderMap _clinetsCollect;
     std::mutex _clients_mutex;
 
-    eDataLayer<eSocketPackage> *_datalayer = nullptr;
+    eDataLayer<eSocketShareData> *_datalayer = nullptr;
 };

@@ -16,6 +16,14 @@ public:
         ERR_DIFFERENT_TID = 1,
     };
 
+    enum PRIORITY_LEVEL{
+        PRIORITY_LEVEL_IDLE = 0,
+        PRIORITY_LEVEL_LOW = 3,
+        PRIORITY_LEVEL_MID = 5,
+        PRIORITY_LEVEL_HIGH = 7,
+        PRIORITY_LEVEL_REAL = 9,
+    };
+
 public:
     class I_Process_Data_Base{
     public:
@@ -149,7 +157,7 @@ public:
     }
 
     // in模块(外部数据)写进来的
-    ERR_DATA_LAYER WriteIn_Data(std::shared_ptr<META_Message> newData, const int priority){
+    ERR_DATA_LAYER WriteIn_Data(std::shared_ptr<META_Message> newData, const PRIORITY_LEVEL priority = PRIORITY_LEVEL::PRIORITY_LEVEL_MID){
         ERR_DATA_LAYER  err = ERR_ZERO;
         std::thread::id curr_tid = std::this_thread::get_id();
         if(curr_tid == _in_tid){
@@ -158,8 +166,8 @@ public:
             _thread_con.notify_one();
             lock.unlock();
         }else{
-            err = ERR_DIFFERENT_TID;
-            _ASSERT(false);
+            //err = ERR_DIFFERENT_TID;
+            //_ASSERT(false);
             //direct writein queue????
         }
         return err;
