@@ -15,6 +15,7 @@
 #include "./src/eDataLayer.h"
 #include "./src/eTcpSrvLayer.h"
 #include "./src/ePackage.h"
+#include "./src/ModuleBase.h"
 
 std::mutex g_mutex;
 
@@ -239,4 +240,19 @@ int test_ring_buf(){
     len = ring_buf_put(&ring_buf, wbuf, sizeof(wbuf));
 
     int i = 0;
+    return i;
+}
+
+class newsermod: public ModuleBase{
+public:
+    newsermod() = default;
+    ~newsermod() = default;
+};
+
+int test_module(){
+    newsermod a;
+    const char* szname = a.className();
+    szname = a.className();
+    printf(szname);
+    return 0;
 }

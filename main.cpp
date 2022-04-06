@@ -145,6 +145,7 @@ int main(int argc, char** argv){
 		//test();
 		//test_mutex();
 		//thread_product_test();
+		test_module();
 		test_ring_buf();
 		test_unique_ptr();
 		printf("done\n");

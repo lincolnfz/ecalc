@@ -13,3 +13,5 @@ int test_Priority_Message_Queue();
 int test_tcp_srv();
 
 int test_ring_buf();
+
+int test_module();
