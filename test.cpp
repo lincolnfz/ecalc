@@ -4,6 +4,7 @@
 #include <mutex>
 #include <memory>
 #include <chrono>
+#include <string>
 #include <thread>
 #include <unordered_map>
 #include <condition_variable>
@@ -16,6 +17,7 @@
 #include "./src/eTcpSrvLayer.h"
 #include "./src/ePackage.h"
 #include "./src/ModuleBase.h"
+#include "./src/eTcpClientsManager.h"
 
 std::mutex g_mutex;
 
@@ -243,16 +245,25 @@ int test_ring_buf(){
     return i;
 }
 
-class newsermod: public ModuleBase{
+class newsermod: public ModuleBase<eSocketShareData>{
 public:
     newsermod() = default;
     ~newsermod() = default;
+    void hadleNotifyMsg(std::shared_ptr<eSocketShareData> msg) override{
+    }
 };
 
 int test_module(){
     newsermod a;
     const char* szname = a.className();
     szname = a.className();
+    std::string nn = CLASS_NAME(newsermod);
     printf(szname);
+    return 0;
+}
+
+int test_clientmanager(){
+    eTcpClientsManager a;
+    
     return 0;
 }

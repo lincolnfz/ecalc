@@ -1,4 +1,5 @@
 #include "eTcpSrvLayer.h"
+#include "emisc/misctool.h"
 #include <event2/bufferevent.h>
 #include <event2/event.h>
 #include <memory>
@@ -317,6 +318,7 @@ void eTcpSrvLayer::client_notify_sendmsg_cb(int fd, short events, void* arg){
             //unsigned long len = bufferevent_read(bev , msg, sizeof(msg));
             if( bufferevent_write(bev, msg, len) < 0 ){
                 //error here
+                _ASSERT(false);
             }
             if(len <= 0){
                 break;

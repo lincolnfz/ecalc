@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 project(ECALC)
-
+set(CMAKE_EXPORT_COMPILECOMMANDS ON)
 #CMAKE_C_FLAGS：gcc编译选项
 #CMAKE_CXX_FLAGS：g++编译选项
 

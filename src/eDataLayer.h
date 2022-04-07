@@ -123,7 +123,7 @@ public:
 
     };
 
-    void Init(const I_Generate_Data_Base *in, const I_Process_Data_Base *out){
+    void Init(I_Generate_Data_Base *in, I_Process_Data_Base *out){
         _in = in;
         _out = out;
     }
@@ -132,7 +132,7 @@ public:
         _ASSERT(_in);
         _ASSERT(_out);
         eDataLayer<META_Message> *self = this;
-        std::thread gen_data_thread(_in->runGenerateData, self);
+        std::thread gen_data_thread(&I_Generate_Data_Base::runGenerateData, _in, self);
         _in_tid = gen_data_thread.get_id();
         _out_tid = std::this_thread::get_id();
         while(true){
