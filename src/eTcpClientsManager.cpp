@@ -9,12 +9,13 @@ eTcpClientsManager::~eTcpClientsManager(){
 }
 
 void eTcpClientsManager::Start(){
-    _gule_srv.Init(&_tcp_srv, this);
-    _gule_srv.RunMsgPump();
+    _gule_self.Init(&_tcp_srv, this);
+    _gule_self.RunMsgPump();
 }
 
 void eTcpClientsManager::hadleNotifyMsg(std::shared_ptr<eSocketShareData> msg){
 
+    
 
-    ModuleBase<eSocketShareData>::hadleNotifyMsg(msg);
+    //ModuleBase<eSocketShareData>::hadleNotifyMsg(msg);
 }

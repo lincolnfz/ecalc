@@ -50,6 +50,7 @@
 # endif
 #endif
 
+#include <boost/functional/hash.hpp>
 #include <glog/logging.h>
 
 
@@ -211,6 +212,7 @@ void eTcpSrvLayer::listener_cb(struct evconnlistener *listener, evutil_socket_t 
     std::unique_ptr<tcpClient> client(new tcpClient(bev, write_ev, notify_close_ev, ctx,  key.c_str()));
     //std::pair<ClientsUnorderMap::iterator, bool> res = self->clinetsCollect_.insert(std::pair<std::string, tcpClient*>(key, client));
     self->_clients_mutex.lock();
+    client->sp_Package->_session_guid = key; //保存socket guid
     std::pair<ClientsUnorderMap::iterator, bool> res = 
             self->_clinetsCollect.emplace(key, std::move(client));
     if(!res.second){

@@ -12,6 +12,7 @@ namespace cyjh{
 			TYPE_NULL = 0,
 			TYPE_BOOLEAN,
 			TYPE_INTEGER,
+			TYPE_FLOAT,
 			TYPE_DOUBLE,
 			TYPE_STRING,
 			TYPE_WSTRING,
@@ -23,9 +24,15 @@ namespace cyjh{
 		cyjh_value() :type_(TYPE_NULL){
 			boolVal_ = false;
 			intVal_ = 0;
+			floatVal_ = 0.0;
 			doubleVal_ = 0.0;
-		}
-		virtual ~cyjh_value(){}
+			ptrBin_ = nullptr;
+			ptrBinSize_ = 0;
+		};
+
+		virtual ~cyjh_value(){
+
+		};
 
 		const Type& GetType() const{
 			return type_;
@@ -47,6 +54,15 @@ namespace cyjh{
 
 		const int& GetIntVal() const {
 			return intVal_;
+		}
+
+		void SetFloatVal(const float& val){
+			type_ = TYPE_FLOAT;
+			floatVal_ = val;
+		}
+
+		const float& GetFloatleVal() const{
+			return floatVal_;
 		}
 
 		void SetDoubleVal(const double& val){
@@ -79,9 +95,12 @@ namespace cyjh{
 		Type type_;
 		bool boolVal_;
 		int intVal_;
+		float floatVal_;
 		double doubleVal_;
 		std::wstring strwVal_;
 		std::string strVal_;
+		unsigned char *ptrBin_;
+		unsigned int ptrBinSize_;
 	private:
 
 	};

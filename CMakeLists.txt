@@ -20,7 +20,7 @@ add_compile_options("-D_DEBUG")
 #set(SRC ./src)
 
 # 将/usr/include/myincludefolder 和 ./include 添加到头文件搜索路径
-#include_directories(/usr/include/myincludefolder ./include)
+include_directories(${CMAKE_SOURCE_DIR}/../include ./include)
 
 # 将/usr/lib/mylibfolder 和 ./lib 添加到库文件搜索路径
 link_directories(/usr/local/lib64 ./lib)

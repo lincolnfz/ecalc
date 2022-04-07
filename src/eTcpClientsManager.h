@@ -15,6 +15,6 @@ public:
 
 private:
     eTcpSrvLayer _tcp_srv;
-    eDataLayer<eSocketShareData> _gule_srv;
+    eDataLayer<eSocketShareData> _gule_self;
 
 };

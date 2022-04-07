@@ -145,6 +145,7 @@ int main(int argc, char** argv){
 		//test();
 		//test_mutex();
 		//thread_product_test();
+		test_fncb();
 		test_clientmanager();
 		test_module();
 		test_ring_buf();

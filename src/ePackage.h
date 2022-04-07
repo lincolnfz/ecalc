@@ -63,7 +63,8 @@ public:
 
     void RunIfExec();
 
-private:
+public:
     TClsMemFnDelegate_2Param<void, std::string, std::string> _cb;
     std::string _param_1, _param_2;
+    std::string _session_guid;
 };

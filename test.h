@@ -17,3 +17,5 @@ int test_ring_buf();
 int test_module();
 
 int test_clientmanager();
+
+int test_fncb();

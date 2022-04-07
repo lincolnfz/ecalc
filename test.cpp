@@ -18,6 +18,8 @@
 #include "./src/ePackage.h"
 #include "./src/ModuleBase.h"
 #include "./src/eTcpClientsManager.h"
+#include "./src/PingPongFn.h"
+#include <boost/functional/hash.hpp>
 
 std::mutex g_mutex;
 
@@ -265,5 +267,31 @@ int test_module(){
 int test_clientmanager(){
     eTcpClientsManager a;
     
+    return 0;
+}
+
+class fncb : public ResponseHandle<TClsMemFnDelegate_2Param<void, char*, unsigned int>> {
+public:
+    fncb();
+    ~fncb(){};
+
+    void recv(char* , unsigned int size){
+        int i = 0;
+    };
+};
+
+fncb::fncb(){
+    REGISTER_RESPONSE_FUNCTION(fncb, recv);
+    //TClsMemFnDelegate_2Param<void, char*, unsigned int> fn;
+    //fn.BindRaw(this, &fncb::recv);
+    bool b = _tmp_fn.isbind();
+    int i = 0;
+}
+
+int test_fncb(){
+    boost::hash<std::string> string_hash;
+    unsigned int hash_val = string_hash("43242");
+    hash_val = string_hash("43242");
+    fncb aa;
     return 0;
 }
