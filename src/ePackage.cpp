@@ -202,8 +202,19 @@ eSocketShareData::~eSocketShareData(){
 }
 
 void eSocketShareData::RunIfExec(){
-    if(_cb.isbind()){
-        _cb(_param_1, _param_2);
-        _cb.unbind();
+    std::unique_lock<std::mutex> lock(_cb_lock);
+    std::list<std::unique_ptr<CB_ENTRY>>::iterator it = _cb_list.begin();
+    for( ; it != _cb_list.end(); ){
+        if((*it)->cbfun.isbind()){
+            (*it)->cbfun((*it)->param_1, (*it)->param_2, (*it)->param_3);
+        }
+        it = _cb_list.erase(it);
     }
+}
+
+void eSocketShareData::PushCB(CB cb,
+             unsigned int id, std::string param, void* rev){
+    std::unique_lock<std::mutex> lock(_cb_lock);
+    std::unique_ptr<CB_ENTRY> ptr(new CB_ENTRY(cb, id, param, rev));
+    _cb_list.push_back(std::move(ptr));
 }

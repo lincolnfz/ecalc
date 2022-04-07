@@ -1,7 +1,9 @@
 #pragma once
 #include "./emisc/FunDelegate.h"
+#include <memory>
 #include <string>
 #include <mutex>
+#include <list>
 
 /*环形缓冲区管理器*/
 typedef struct
@@ -58,13 +60,31 @@ protected:
 
 class eSocketShareData : public ePackageBase{
 public:
+    using CB = TClsMemFnDelegate_3Param<void, unsigned int, std::string, void*>;
     eSocketShareData();
     virtual ~eSocketShareData();
 
-    void RunIfExec();
+protected:
+    struct CB_ENTRY {
+        CB_ENTRY(CB p0, unsigned int p1, std::string p2, void* p3){
+            cbfun = p0;
+            param_1 = p1;
+            param_2 = p2;
+            param_3 = p3;
+        }
+        ~CB_ENTRY(){
+
+        }
+        CB cbfun;
+        unsigned int param_1;
+        std::string param_2;
+        void* param_3;
+    };
+    std::list<std::unique_ptr<CB_ENTRY>> _cb_list;
+    std::mutex _cb_lock;
 
 public:
-    TClsMemFnDelegate_2Param<void, std::string, std::string> _cb;
-    std::string _param_1, _param_2;
-    unsigned int _session_key = 0;
+    void RunIfExec();
+    void PushCB(CB, unsigned int, std::string, void*);
+    unsigned int _session_key = 0; //param_1
 };

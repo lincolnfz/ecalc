@@ -1,6 +1,9 @@
 #ifndef Instruct_h
 #define Instruct_h
 #include <vector>
+#include <map>
+#include <string.h>
+#include <stdlib.h>
 #include "cjpickle.h"
 
 namespace cyjh{
@@ -31,7 +34,9 @@ namespace cyjh{
 		};
 
 		virtual ~cyjh_value(){
-
+			if(ptrBin_){
+				delete ptrBin_;
+			}
 		};
 
 		const Type& GetType() const{
@@ -90,6 +95,22 @@ namespace cyjh{
 
 		const std::wstring& GetWStrVal() const{
 			return strwVal_;
+		}
+
+		void SetBinaryVal(const unsigned char *pBin, const unsigned int size){
+			if(size == 0)
+				return;
+			if(ptrBin_){
+				delete ptrBin_;
+			}
+			ptrBinSize_ = size;
+			ptrBin_ = new unsigned char[size];
+			memcpy(ptrBin_, pBin, size);
+		}
+
+		const unsigned int GetBinaryVal(const unsigned char *pBin) const{
+			pBin = ptrBin_;
+			return ptrBinSize_;
 		}
 	protected:
 		Type type_;

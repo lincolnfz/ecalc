@@ -36,6 +36,7 @@ struct client_ctx{
 };
 
 struct tcpClient{
+    evutil_socket_t fd;
     struct bufferevent *bev;
     struct event *write_ev;
     struct event *notify_close_ev;
@@ -43,8 +44,9 @@ struct tcpClient{
     unsigned int Key;
     std::shared_ptr<eSocketShareData> sp_Package;
 
-    tcpClient(struct bufferevent *bev, struct event *write_ev,
+    tcpClient(evutil_socket_t fd, struct bufferevent *bev, struct event *write_ev,
              struct event *notify_close_ev, client_ctx* ctx, const unsigned int key){
+        this->fd = fd;
         this->Key = key;
         this->bev = bev;
         this->write_ev = write_ev;
@@ -76,8 +78,11 @@ public:
     virtual void runGenerateData(const eDataLayer<eSocketShareData> *ctx) override;
     eErrServer Run(const int port);
 
-    eErrServer SendData2Client(const unsigned int key, const unsigned char* msg, const unsigned int msg_len, TClsMemFnDelegate_0Param<void> cb);
-    eErrServer CloseClient(const unsigned int key, TClsMemFnDelegate_0Param<void> cb);
+    eErrServer SendData2Client(const unsigned int key, const unsigned char* msg, const unsigned int msg_len);
+    eErrServer CloseClient(const unsigned int key);
+
+    void RegisterSendStatus(TClsMemFnDelegate_3Param<void, unsigned int, std::string, void*> cb);
+    void RegisterClientClose(TClsMemFnDelegate_3Param<void, unsigned int, std::string, void*> cb);
 
 protected:
     static void listener_cb(struct evconnlistener *listener, evutil_socket_t fd,
@@ -94,6 +99,7 @@ private:
 	struct evconnlistener *_listener;
     ClientsUnorderMap _clinetsCollect;
     std::mutex _clients_mutex;
+    TClsMemFnDelegate_3Param<void, unsigned int, std::string, void*> _send_data_cb, _close_client_cb;
 
     eDataLayer<eSocketShareData> *_datalayer = nullptr;
 };
