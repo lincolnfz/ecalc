@@ -28,10 +28,10 @@ class eTcpSrvLayer;
 struct client_ctx{
     eTcpSrvLayer* inst;
     //tcpClient* client;
-    char szKey[GUID_KEY_LEN];
+    unsigned int key;
 
     client_ctx(){
-        memset(szKey, 0, GUID_KEY_LEN);
+        key = 0;
     }
 };
 
@@ -40,10 +40,12 @@ struct tcpClient{
     struct event *write_ev;
     struct event *notify_close_ev;
     client_ctx *ctx;
-    std::string strKey;
+    unsigned int Key;
     std::shared_ptr<eSocketShareData> sp_Package;
 
-    tcpClient(struct bufferevent *bev, struct event *write_ev, struct event *notify_close_ev, client_ctx* ctx, const char* pkey): strKey(pkey){
+    tcpClient(struct bufferevent *bev, struct event *write_ev,
+             struct event *notify_close_ev, client_ctx* ctx, const unsigned int key){
+        this->Key = key;
         this->bev = bev;
         this->write_ev = write_ev;
         this->notify_close_ev = notify_close_ev;
@@ -63,7 +65,7 @@ struct tcpClient{
     }
 };
 
-typedef std::unordered_map<std::string, std::unique_ptr<tcpClient>> ClientsUnorderMap;
+typedef std::unordered_map<unsigned int, std::unique_ptr<tcpClient>> ClientsUnorderMap;
 
 class eTcpSrvLayer : public eDataLayer<eSocketShareData>::I_Generate_Data_Base {
 public:
@@ -74,8 +76,8 @@ public:
     virtual void runGenerateData(const eDataLayer<eSocketShareData> *ctx) override;
     eErrServer Run(const int port);
 
-    eErrServer SendData2Client(const char* szKey, const unsigned char* msg, const unsigned int msg_len, TClsMemFnDelegate_0Param<void> cb);
-    eErrServer CloseClient(const char* szKey, TClsMemFnDelegate_0Param<void> cb);
+    eErrServer SendData2Client(const unsigned int key, const unsigned char* msg, const unsigned int msg_len, TClsMemFnDelegate_0Param<void> cb);
+    eErrServer CloseClient(const unsigned int key, TClsMemFnDelegate_0Param<void> cb);
 
 protected:
     static void listener_cb(struct evconnlistener *listener, evutil_socket_t fd,
@@ -85,7 +87,7 @@ protected:
     static void conn_eventcb(struct bufferevent *bev, short events, void *user_data);
     static void client_notify_sendmsg_cb(int fd, short events, void* arg);
     static void notify_close_client_cb(int fd, short events, void* arg);
-    bool freeClient(const char* key, const int code);
+    bool freeClient(const unsigned int key, const int code);
 
 private:
     struct event_base *_base;

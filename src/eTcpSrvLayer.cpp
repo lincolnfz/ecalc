@@ -52,7 +52,7 @@
 
 #include <boost/functional/hash.hpp>
 #include <glog/logging.h>
-
+#include <boost/functional/hash.hpp>
 
 #ifdef _WIN32
 #ifndef stat
@@ -135,10 +135,10 @@ eErrServer eTcpSrvLayer::Run(const int port){
     return NO_ERROR;
 }
 
-eErrServer eTcpSrvLayer::SendData2Client(const char* szKey, const unsigned char* msg, const unsigned int msg_len, TClsMemFnDelegate_0Param<void> cb){
+eErrServer eTcpSrvLayer::SendData2Client(const unsigned int key, const unsigned char* msg, const unsigned int msg_len, TClsMemFnDelegate_0Param<void> cb){
     eErrServer errCode = NO_FIND_CLIENT;
     _clients_mutex.lock();
-    ClientsUnorderMap::const_iterator got = _clinetsCollect.find(szKey);
+    ClientsUnorderMap::const_iterator got = _clinetsCollect.find(key);
     if( got != _clinetsCollect.end() ){
         errCode = NO_ERROR;
         got->second->sp_Package->Write_SendBuf( const_cast<unsigned char*>(msg), msg_len);
@@ -150,10 +150,10 @@ eErrServer eTcpSrvLayer::SendData2Client(const char* szKey, const unsigned char*
     return errCode;
 }
 
-eErrServer eTcpSrvLayer::CloseClient(const char* szKey, TClsMemFnDelegate_0Param<void> cb){
+eErrServer eTcpSrvLayer::CloseClient(const unsigned int key, TClsMemFnDelegate_0Param<void> cb){
     eErrServer errCode = NO_FIND_CLIENT;
     _clients_mutex.lock();
-    ClientsUnorderMap::const_iterator got = _clinetsCollect.find(szKey);
+    ClientsUnorderMap::const_iterator got = _clinetsCollect.find(key);
     if( got != _clinetsCollect.end() ){
         errCode = NO_ERROR;
         //通知关闭客户端
@@ -175,12 +175,13 @@ void eTcpSrvLayer::listener_cb(struct evconnlistener *listener, evutil_socket_t 
     struct event_base *base = self->_base;
     struct bufferevent *bev;
 
-    std::string key = CreateGuid();
+    boost::hash<std::string> string_hash;
+    unsigned int key = string_hash(CreateGuid());
     client_ctx* ctx = new client_ctx;
     if(!ctx){
         return;
     }
-    strncpy(ctx->szKey, key.c_str(), GUID_KEY_LEN);
+    ctx->key = key;
     ctx->inst = self;
 
     //创建并且初始化buffer缓冲区
@@ -209,10 +210,10 @@ void eTcpSrvLayer::listener_cb(struct evconnlistener *listener, evutil_socket_t 
      }
 
     
-    std::unique_ptr<tcpClient> client(new tcpClient(bev, write_ev, notify_close_ev, ctx,  key.c_str()));
+    std::unique_ptr<tcpClient> client(new tcpClient(bev, write_ev, notify_close_ev, ctx,  key));
     //std::pair<ClientsUnorderMap::iterator, bool> res = self->clinetsCollect_.insert(std::pair<std::string, tcpClient*>(key, client));
     self->_clients_mutex.lock();
-    client->sp_Package->_session_guid = key; //保存socket guid
+    client->sp_Package->_session_key = key; //保存socket guid
     std::pair<ClientsUnorderMap::iterator, bool> res = 
             self->_clinetsCollect.emplace(key, std::move(client));
     if(!res.second){
@@ -239,7 +240,7 @@ void eTcpSrvLayer::conn_readcb(struct bufferevent *bev, void *user_data)
     printf("recv %s from server\n", msg);*/
     eTcpSrvLayer *self = ctx->inst;
     self->_clients_mutex.lock();
-    ClientsUnorderMap::const_iterator got = self->_clinetsCollect.find(ctx->szKey);
+    ClientsUnorderMap::const_iterator got = self->_clinetsCollect.find(ctx->key);
     if( got != self->_clinetsCollect.end() ){
         while(true){
             unsigned char msg[8192];
@@ -267,7 +268,7 @@ void eTcpSrvLayer::conn_writecb(struct bufferevent *bev, void *user_data)
 	}*/
     eTcpSrvLayer *self = ctx->inst;
     self->_clients_mutex.lock();
-    ClientsUnorderMap::const_iterator got = self->_clinetsCollect.find(ctx->szKey);
+    ClientsUnorderMap::const_iterator got = self->_clinetsCollect.find(ctx->key);
     if( got != self->_clinetsCollect.end() ){
         
     }
@@ -293,7 +294,7 @@ void eTcpSrvLayer::conn_eventcb(struct bufferevent *bev, short events, void *use
     }else if (events & BEV_EVENT_WRITING) {
         return;
     }
-    ctx->inst->freeClient(ctx->szKey, events);
+    ctx->inst->freeClient(ctx->key, events);
     
 	/* None of the other events can happen here, since we haven't enabled
 	 * timeouts */
@@ -311,7 +312,7 @@ void eTcpSrvLayer::client_notify_sendmsg_cb(int fd, short events, void* arg){
     //bufferevent_write(bev, msg, ret);
     eTcpSrvLayer *self = ctx->inst;
     self->_clients_mutex.lock();
-    ClientsUnorderMap::const_iterator got = self->_clinetsCollect.find(ctx->szKey);
+    ClientsUnorderMap::const_iterator got = self->_clinetsCollect.find(ctx->key);
     if( got != self->_clinetsCollect.end() ){
         struct bufferevent* bev = got->second->bev;
         while(true){
@@ -334,10 +335,10 @@ void eTcpSrvLayer::notify_close_client_cb(int fd, short events, void* arg){
     client_ctx* ctx = (client_ctx*)arg;
 
     //重要!!!! 执行freeclient后,客户端资源就被销毁,不能再操作任何相关的业务
-    ctx->inst->freeClient(ctx->szKey, 0);
+    ctx->inst->freeClient(ctx->key, 0);
 }
 
-bool eTcpSrvLayer::freeClient(const char* key, const int code){
+bool eTcpSrvLayer::freeClient(const unsigned int key, const int code){
     bool ret = false;
     _clients_mutex.lock();
     ClientsUnorderMap::const_iterator got = _clinetsCollect.find(key);
