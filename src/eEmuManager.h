@@ -16,8 +16,8 @@ public:
     virtual void SendData(const unsigned int key, const unsigned char* msg, const unsigned int msg_len, void* user_args = nullptr) override;
     virtual void CloseRemote(const unsigned int key, void* user_args = nullptr) override;
 
-    virtual void notify_send_status(unsigned int, std::string, void*) override;
-    virtual void notify_close(unsigned int, std::string, void*) override;
+    virtual void notify_send_status(unsigned int, std::string&, void*) override;
+    virtual void notify_close(unsigned int, std::string&, void*) override;
 
 private:
     EmuUnorderMap _Emumap;

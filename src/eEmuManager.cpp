@@ -38,11 +38,11 @@ void eEmuManager::CloseRemote(const unsigned int key, void* user_args){
     eTcpClientsManager::CloseRemote(key, user_args);
 }
 
-void eEmuManager::notify_send_status(unsigned int key, std::string content, void* user_args){
+void eEmuManager::notify_send_status(unsigned int key, std::string& content, void* user_args){
 
 }
 
-void eEmuManager::notify_close(unsigned int key, std::string content, void* user_args){
+void eEmuManager::notify_close(unsigned int key, std::string& content, void* user_args){
 
 }
 
