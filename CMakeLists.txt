@@ -47,8 +47,9 @@ aux_source_directory(./src SRC)
 aux_source_directory(./src/3rd/uuid UUID)
 aux_source_directory(./src/Algorithm ALGORITHM)
 aux_source_directory(./src/emisc EMISC)
+aux_source_directory(./src/frames FRAMES)
 # 编译SRC变量所代表的源代码文件，生成main可执行文件
-add_executable(main main.cpp test.cpp ${SRC} ${EMISC} ${ALGORITHM} ${UUID})
+add_executable(main main.cpp test.cpp ${SRC} ${EMISC} ${ALGORITHM} ${UUID} ${FRAMES})
 
 # 将hello动态库文件链接到可执行文件main
 # libevent链接到主程序

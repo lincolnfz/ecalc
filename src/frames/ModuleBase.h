@@ -1,6 +1,6 @@
 #pragma once
 #include <regex>
-#include "./emisc/FunDelegate.h"
+#include "../emisc/FunDelegate.h"
 #include "eDataLayer.h"
 
 #define REGISTER_HANDLER_MEMBER_FUNCTION(class_name, function_name) \

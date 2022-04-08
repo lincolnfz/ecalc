@@ -1,6 +1,6 @@
 #pragma once
 #include <map>
-#include "Instruct.h"
+//#include "Instruct.h"
 
 #define REGISTER_RESPONSE_FUNCTION(class_name, function_name) \
     _tmp_fn.BindRaw(this, &class_name::function_name); \

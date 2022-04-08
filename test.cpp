@@ -13,12 +13,12 @@
 #include <sys/types.h>
 #include "./src/Data.h"
 #include <list>
-#include "./src/eDataLayer.h"
-#include "./src/eTcpSrvLayer.h"
-#include "./src/ePackage.h"
-#include "./src/ModuleBase.h"
-#include "./src/eTcpClientsManager.h"
-#include "./src/PingPongFn.h"
+#include "./src/frames/eDataLayer.h"
+#include "./src/frames/eTcpSrvLayer.h"
+#include "./src/frames/ePackage.h"
+#include "./src/frames/ModuleBase.h"
+#include "./src/frames/eTcpClientsManager.h"
+#include "./src/frames/PingPongFn.h"
 #include <boost/functional/hash.hpp>
 
 std::mutex g_mutex;

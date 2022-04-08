@@ -4,7 +4,7 @@
 #include <map>
 #include <string.h>
 #include <stdlib.h>
-#include "cjpickle.h"
+#include "./frames/cjpickle.h"
 
 namespace cyjh{
 
