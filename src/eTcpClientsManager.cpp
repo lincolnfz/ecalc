@@ -15,7 +15,7 @@ void eTcpClientsManager::Start(){
 
 void eTcpClientsManager::hadleNotifyMsg(std::shared_ptr<eSocketShareData> msg){
 
-    
+    msg->RunIfExec();
 
     //ModuleBase<eSocketShareData>::hadleNotifyMsg(msg);
 }

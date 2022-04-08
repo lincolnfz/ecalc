@@ -53,6 +53,7 @@
 #include <boost/functional/hash.hpp>
 #include <glog/logging.h>
 #include <boost/functional/hash.hpp>
+#include <json.hpp>
 
 #ifdef _WIN32
 #ifndef stat
@@ -72,6 +73,7 @@
 #endif
 #endif /* _WIN32 */
 
+using Json = nlohmann::json;
 
 eTcpSrvLayer::eTcpSrvLayer(){
 
@@ -135,12 +137,13 @@ eErrServer eTcpSrvLayer::Run(const int port){
     return NO_ERROR;
 }
 
-eErrServer eTcpSrvLayer::SendData2Client(const unsigned int key, const unsigned char* msg, const unsigned int msg_len){
+eErrServer eTcpSrvLayer::SendData2Client(const unsigned int key, const unsigned char* msg, const unsigned int msg_len, void* user_args){
     eErrServer errCode = NO_FIND_CLIENT;
     _clients_mutex.lock();
     ClientsUnorderMap::const_iterator got = _clinetsCollect.find(key);
     if( got != _clinetsCollect.end() ){
         errCode = NO_ERROR;
+        got->second->args = user_args;
         got->second->sp_Package->Write_SendBuf( const_cast<unsigned char*>(msg), msg_len);
         int event = 0;
         //通知向客户端发送数据
@@ -150,7 +153,7 @@ eErrServer eTcpSrvLayer::SendData2Client(const unsigned int key, const unsigned 
     return errCode;
 }
 
-eErrServer eTcpSrvLayer::CloseClient(const unsigned int key){
+eErrServer eTcpSrvLayer::CloseClient(const unsigned int key, void* user_args){
     eErrServer errCode = NO_FIND_CLIENT;
     _clients_mutex.lock();
     ClientsUnorderMap::const_iterator got = _clinetsCollect.find(key);
@@ -158,6 +161,7 @@ eErrServer eTcpSrvLayer::CloseClient(const unsigned int key){
         errCode = NO_ERROR;
         //通知关闭客户端
         int event = 0;
+        got->second->args = user_args;
         event_active(got->second->notify_close_ev, event, 0);
     }
     _clients_mutex.unlock();
@@ -259,7 +263,7 @@ void eTcpSrvLayer::conn_readcb(struct bufferevent *bev, void *user_data)
                 got->second->sp_Package->Write_RecvBuf(msg, len);
             }
         }
-        self->_datalayer->WriteIn_Data(got->second->sp_Package, eDataLayer<eSocketShareData>::PRIORITY_LEVEL::PRIORITY_LEVEL_MID);
+        self->_datalayer->WriteInQueue_Msg(got->second->sp_Package, eDataLayer<eSocketShareData>::PRIORITY_LEVEL::PRIORITY_LEVEL_MID);
     }
     self->_clients_mutex.unlock();
 }
@@ -319,6 +323,7 @@ void eTcpSrvLayer::client_notify_sendmsg_cb(int fd, short events, void* arg){
 
     //向外sock发送数据
     //bufferevent_write(bev, msg, ret);
+    int err = 0;
     eTcpSrvLayer *self = ctx->inst;
     self->_clients_mutex.lock();
     ClientsUnorderMap::const_iterator got = self->_clinetsCollect.find(ctx->key);
@@ -330,13 +335,19 @@ void eTcpSrvLayer::client_notify_sendmsg_cb(int fd, short events, void* arg){
             //unsigned long len = bufferevent_read(bev , msg, sizeof(msg));
             if( bufferevent_write(bev, msg, len) < 0 ){
                 //error here
+                err = SEND_DATA_FAIL;
                 _ASSERT(false);
             }
             if(len <= 0){
+                err = NO_ERROR;
                 break;
             }
         }
     }
+    Json val;
+    val['err'] = err;
+    got->second->sp_Package->PushCB(self->_send_data_cb, got->second->sp_Package->_session_key, val.dump().c_str(), 0);
+    self->_datalayer->WriteInQueue_Msg(got->second->sp_Package, eDataLayer<eSocketShareData>::PRIORITY_LEVEL::PRIORITY_LEVEL_MID);
     self->_clients_mutex.unlock();
 }
 
@@ -355,10 +366,9 @@ void eTcpSrvLayer::notify_close_client_cb(int fd, short events, void* arg){
 bool eTcpSrvLayer::freeClient(const unsigned int key, const int code){
     bool ret = false;
     _clients_mutex.lock();
+    Json val;
     ClientsUnorderMap::const_iterator got = _clinetsCollect.find(key);
     if( got != _clinetsCollect.end() ){
-        //回调通知当前客户sock要关闭
-        got->second->sp_Package->PushCB(_close_client_cb, got->second->sp_Package->_session_key, "", 0);
         bufferevent_setcb(got->second->bev, nullptr, nullptr, nullptr, nullptr);
         //bufferevent_disable(got->second->bev, EV_READ|EV_WRITE);
         bufferevent_free(got->second->bev);
@@ -367,9 +377,17 @@ bool eTcpSrvLayer::freeClient(const unsigned int key, const int code){
         got->second->bev = nullptr;
         got->second->write_ev = nullptr;
         got->second->notify_close_ev = nullptr;
+
+        //回调通知当前客户sock已关闭
+        val["err"] = NO_ERROR;
+        got->second->sp_Package->PushCB(_close_client_cb, got->second->sp_Package->_session_key, val.dump().c_str(), 0);
+        _datalayer->WriteInQueue_Msg(got->second->sp_Package, eDataLayer<eSocketShareData>::PRIORITY_LEVEL::PRIORITY_LEVEL_MID);
         _clinetsCollect.erase(got);
         ret = true;
     }else{
+        val["err"] = NO_FIND_CLIENT;
+        got->second->sp_Package->PushCB(_close_client_cb, got->second->sp_Package->_session_key, val.dump().c_str(), 0);
+        _datalayer->WriteInQueue_Msg(got->second->sp_Package, eDataLayer<eSocketShareData>::PRIORITY_LEVEL::PRIORITY_LEVEL_MID);
         fprintf(stderr, "Error freeClient no found fail !\n");
     }
     _clients_mutex.unlock();

@@ -4,7 +4,7 @@
 #include "eTcpSrvLayer.h"
 #include "ModuleBase.h"
 
-class eTcpClientsManager : public ModuleBase<eSocketShareData>{
+class eTcpClientsManager : public eDataLayer<eSocketShareData>::I_Process_Data_Base{ // ModuleBase<eSocketShareData>{
 
 public:
     eTcpClientsManager();

@@ -264,9 +264,21 @@ int test_module(){
     return 0;
 }
 
+class eEnumHuawei : public eTcpClientsManager{
+public:
+    eEnumHuawei(){
+
+    };
+
+    ~eEnumHuawei(){
+
+    };
+
+};
+
 int test_clientmanager(){
-    eTcpClientsManager a;
-    
+    eEnumHuawei a;
+    a.Start();
     return 0;
 }
 

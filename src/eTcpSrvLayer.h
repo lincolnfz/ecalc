@@ -43,6 +43,7 @@ struct tcpClient{
     client_ctx *ctx;
     unsigned int Key;
     std::shared_ptr<eSocketShareData> sp_Package;
+    void* args;
 
     tcpClient(evutil_socket_t fd, struct bufferevent *bev, struct event *write_ev,
              struct event *notify_close_ev, client_ctx* ctx, const unsigned int key){
@@ -53,6 +54,7 @@ struct tcpClient{
         this->notify_close_ev = notify_close_ev;
         this->ctx = ctx;
         sp_Package = std::make_shared<eSocketShareData>();
+        args = nullptr; //回调时传递的上下文现在没有用到
     }
 
     ~tcpClient(){
@@ -78,8 +80,8 @@ public:
     virtual void runGenerateData(const eDataLayer<eSocketShareData> *ctx) override;
     eErrServer Run(const int port);
 
-    eErrServer SendData2Client(const unsigned int key, const unsigned char* msg, const unsigned int msg_len);
-    eErrServer CloseClient(const unsigned int key);
+    eErrServer SendData2Client(const unsigned int key, const unsigned char* msg, const unsigned int msg_len, void* user_args = nullptr);
+    eErrServer CloseClient(const unsigned int key, void* user_args = nullptr);
 
     void RegisterSendStatus(TClsMemFnDelegate_3Param<void, unsigned int, std::string, void*> cb);
     void RegisterClientClose(TClsMemFnDelegate_3Param<void, unsigned int, std::string, void*> cb);

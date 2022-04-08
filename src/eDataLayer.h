@@ -157,7 +157,7 @@ public:
     }
 
     // in模块(外部数据)写进来的
-    ERR_DATA_LAYER WriteIn_Data(std::shared_ptr<META_Message> newData, const PRIORITY_LEVEL priority = PRIORITY_LEVEL::PRIORITY_LEVEL_MID){
+    ERR_DATA_LAYER WriteInQueue_Msg(std::shared_ptr<META_Message> newData, const PRIORITY_LEVEL priority = PRIORITY_LEVEL::PRIORITY_LEVEL_MID){
         ERR_DATA_LAYER  err = ERR_ZERO;
         std::thread::id curr_tid = std::this_thread::get_id();
         if(curr_tid == _in_tid){
