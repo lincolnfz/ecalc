@@ -19,6 +19,7 @@
 #include "./src/frames/ModuleBase.h"
 #include "./src/frames/eTcpClientsManager.h"
 #include "./src/frames/PingPongFn.h"
+#include "./src/eEmuManager.h"
 #include <boost/functional/hash.hpp>
 
 std::mutex g_mutex;
@@ -277,7 +278,7 @@ public:
 };
 
 int test_clientmanager(){
-    eEnumHuawei a;
+    eEmuManager a;
     a.Start();
     return 0;
 }
