@@ -4,6 +4,14 @@ set(CMAKE_EXPORT_COMPILECOMMANDS ON)
 #CMAKE_C_FLAGS：gcc编译选项
 #CMAKE_CXX_FLAGS：g++编译选项
 
+##LLVM scope
+find_package(LLVM REQUIRED CONFIG)
+message(STATUS "This is BINARY dir " ${PROJECT_BINARY_DIR})
+message(STATUS "This is SOURCE dir " ${PROJECT_SOURCE_DIR})
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+##LLVM scope
+
 # 在CMAKE_CXX_FLAGS编译选项后追加 -std=c++11
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -O0")
 set(CMAKE_CXX_STANDARD 14)
@@ -15,6 +23,7 @@ set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE release)
 
 add_compile_options("-D_DEBUG")
+add_definitions(${LLVM_DEFINITIONS})  ##LLVM SCOPE
 
 #定义SRC变量，其值为main.cpp hello.cpp
 #set(SRC ./src)
@@ -22,6 +31,7 @@ add_compile_options("-D_DEBUG")
 # 将/usr/include/myincludefolder 和 ./include 添加到头文件搜索路径
 include_directories(${CMAKE_SOURCE_DIR}/../include ./include)
 include_directories(${CMAKE_SOURCE_DIR}/src/3rd/include ./include)
+include_directories(${LLVM_INCLUDE_DIRS}) ##LLVM SCOPE
 
 # 将/usr/lib/mylibfolder 和 ./lib 添加到库文件搜索路径
 link_directories(/usr/local/lib64 ./lib)
@@ -58,7 +68,10 @@ set(LINK_LIBRARY ${LINK_LIBRARY} "z.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "curl.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "crypto.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "hiredis.a")
+set(LINK_LIBRARY ${LINK_LIBRARY} "spdlog.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "pthread")
 set(LINK_LIBRARY ${LINK_LIBRARY} "dl")
+
+
 target_link_libraries(main ${LINK_LIBRARY})
 

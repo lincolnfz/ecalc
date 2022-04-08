@@ -51,7 +51,6 @@
 #endif
 
 #include <boost/functional/hash.hpp>
-#include <glog/logging.h>
 #include <boost/functional/hash.hpp>
 #include <json.hpp>
 

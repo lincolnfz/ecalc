@@ -71,6 +71,7 @@
 #include <string>
 
 #include "./src/emisc/misctool.h"
+#include <spdlog/spdlog.h>
 //test
 #include <thread>
 #include "src/Data.h"
@@ -125,6 +126,7 @@ void tt(const char* file, const char* line){
 }
 
 int main(int argc, char** argv){
+	spdlog::info("Welcome to spdlog!");
 	{
 		//判断是否设置了-d，以daemon运行
 		/*if (httpd_option_daemon) {
