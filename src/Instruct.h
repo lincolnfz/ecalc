@@ -122,6 +122,8 @@ namespace cyjh{
 		std::string strVal_;
 		unsigned char *ptrBin_;
 		unsigned int ptrBinSize_;
+		std::map<std::string, cyjh_value> map_;
+		std::vector<cyjh_value> list_;
 	private:
 
 	};

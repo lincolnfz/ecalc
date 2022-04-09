@@ -4,7 +4,7 @@
 class eEmuClient{
 public:
     eEmuClient();
-    ~eEmuClient();
+    virtual ~eEmuClient();
 
     void DoRecvData(std::shared_ptr<eSocketShareData> sp);
     
