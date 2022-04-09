@@ -1,19 +1,21 @@
 #include "eEmuClient.h"
+#include <cstddef>
+#include "./emisc/misctool.h"
 
 #define PACKETHEAD		5
 
 CDataPacket::CDataPacket(void)
 {
     m_dwSize = 0;
-    m_pBuf = NULL;
-    m_dwLen = 0;
+    m_pBuf = nullptr;
+    m_dwUsedSize = 0;
+    m_check_idx = 0;
 }
 
 
 CDataPacket::~CDataPacket(void)
 {
     m_dwSize = 0;
-    m_dwLen = 0;
     SAFE_RELEASE( m_pBuf );
 }
 
@@ -22,6 +24,32 @@ CDataPacket::~CDataPacket(void)
 #define PACK_HEAD_FLAG 0x02
 #define PACK_REAR_FLAG 0x03
 
+#define PACK_ORDER_OFFSET 1
+#define PACK_ORDER_SIZE 2
+
+#define PACK_TYPE_OFFSET 3
+#define PACK_TYPE_SIZE 1
+
+#define PACK_SIZE_OFFSET 4
+#define PACK_SIZE_SIZE 2
+
+#define PACK_CONTENT_OFFSET 6
+
+inline long read_pack_size(BYTE* head, unsigned int len){
+    long size = -1;
+    if(*head == PACK_HEAD_FLAG){
+        if(len > PACK_SIZE_OFFSET + PACK_SIZE_SIZE){
+            memcpy(&size, head+PACK_SIZE_OFFSET, PACK_SIZE_SIZE);
+        }
+    }else{
+		size = -2;
+        _ASSERT(false);
+    }
+    
+    return size;
+}
+
+/*
 PDATACHANNELPACKET CDataPacket::FilterPacket( const BYTE* pbyRecv, const DWORD dwRecvLen )
 {
 	PDATACHANNELPACKET pRet = NULL;
@@ -42,7 +70,7 @@ PDATACHANNELPACKET CDataPacket::FilterPacket( const BYTE* pbyRecv, const DWORD d
             dwTmp = dwRecvLen;
             if ( dwTmp > dwMaxBufSize )//若清理后仍超出，放弃处理，返回NULL
             {
-                return NULL;
+                return nullptr;
             }
         }
         if ( dwTmp > m_dwSize && dwTmp < dwMaxBufSize )//超过缓冲，需要重新开辟空间
@@ -53,7 +81,7 @@ PDATACHANNELPACKET CDataPacket::FilterPacket( const BYTE* pbyRecv, const DWORD d
             memcpy( m_pBuf, pbyTmp, m_dwLen );
             m_dwSize = dwTmp;
             free( pbyTmp );
-            pbyTmp = NULL;
+            pbyTmp = nullptr;
         }
         
         //追加数据
@@ -136,11 +164,43 @@ PDATACHANNELPACKET CDataPacket::FilterPacket( const BYTE* pbyRecv, const DWORD d
     }
     return pRet;
 }
+*/
+
+PDATACHANNELPACKET CDataPacket::FilterPacket( const BYTE* pbyRecv, const DWORD dwRecvLen ){
+    PDATACHANNELPACKET pRet = nullptr;
+    if ( dwRecvLen > 0 ){
+		if( remain_size() < dwRecvLen ){
+            DWORD minimum_request_size  = dwRecvLen - remain_size();
+            DWORD calloc_size =  max(minimum_request_size + m_dwSize + 1024, m_dwSize + 8192 );
+            BYTE* tmp = (BYTE*)calloc(calloc_size, 1);
+            if(m_pBuf){
+                memcpy(tmp, m_pBuf, m_dwUsedSize);
+                SAFE_RELEASE(m_pBuf);
+                m_pBuf = tmp;
+            }else{
+                m_pBuf = tmp;
+            }
+            m_dwSize = calloc_size;
+        }
+        memcpy(m_pBuf + m_dwUsedSize, pbyRecv, dwRecvLen);
+        m_dwUsedSize += dwRecvLen;
+
+        for(; m_check_idx < m_dwUsedSize; ++m_check_idx){
+            if(m_statues == 0){
+                if(m_pBuf[m_check_idx] == PACK_HEAD_FLAG){
+                    read_pack_size(m_pBuf + m_check_idx, m_dwUsedSize - m_check_idx);
+                }
+            }
+        }
+        
+    }
+    return pRet;
+}
 
 
 BYTE* CDataPacket::BuildPacket( const PDATACHANNELPACKET pPacket, DWORD& dwRetLen )
 {
-    BYTE* pRet = NULL;
+    BYTE* pRet = nullptr;
 	dwRetLen = pPacket->wDataLen + 2 + PACKETHEAD;
     pRet = (BYTE*)calloc( dwRetLen, 1 );
 	DWORD dwIndex = 0;
@@ -170,7 +230,7 @@ BYTE* CDataPacket::BuildPacket( const PDATACHANNELPACKET pPacket, DWORD& dwRetLe
 
 void CDataPacket::Clear( )
 {
-    m_dwLen = 0;
+    
 }
 
 eEmuClient::eEmuClient(){
@@ -182,5 +242,9 @@ eEmuClient::~eEmuClient(){
 }
 
 void eEmuClient::DoRecvData(std::shared_ptr<eSocketShareData> sp){
-    //sp->Read_RecvBuf(unsigned char *buf, unsigned int len)
+    unsigned char szTmp[8192] = {0};
+    unsigned int len = 0;
+    while( len = sp->Read_RecvBuf(szTmp, sizeof(szTmp)), len > 0){
+
+    }
 }
