@@ -22,11 +22,21 @@
             ]
         },
         {
+            "label": "ninja",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "command": "ninja",
+            "args": [
+            ]
+        },
+        {
             "label": "cmake_build",
             "dependsOrder": "sequence",
             "dependsOn":[
                 "cmake",
-                "make"
+                "ninja"
             ]
         }
     ],
