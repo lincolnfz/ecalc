@@ -12,7 +12,7 @@ CDataPacket::CDataPacket(void)
     m_dwSize = 0;
     m_pBuf = nullptr;
     m_dwUsedSize = 0;
-    m_check_idx = 0;
+    //m_check_idx = 0;
 }
 
 
@@ -237,34 +237,35 @@ std::vector<PDATACHANNELPACKET> CDataPacket::FilterPacket( const BYTE* pbyRecv, 
         m_dwUsedSize += dwRecvLen;
 
         unsigned int check_statues = CHECK_STATUS_BLANK;
-        for(; m_check_idx < m_dwUsedSize; ){
-            BYTE* head = m_pBuf + m_check_idx;
+        DWORD check_idx = 0;
+        for(; check_idx < m_dwUsedSize; ){
+            BYTE* head = m_pBuf + check_idx;
             unsigned int check_len = m_pBuf +m_dwUsedSize - head;
             if (check_statues == CHECK_STATUS_BLANK) {
                 if(check_pack_head(head, check_len) == 0){
                     m_tmp_datachannelpack = new DATACHANNELPACKET;
                     _ASSERT(m_tmp_datachannelpack);
-                    m_check_idx += PACK_HEAD_SIZE;
+                    check_idx += PACK_HEAD_SIZE;
                     check_statues |= CHECK_STATUS_HEAD;
                     if(check_pack_no(head, check_len, &(m_tmp_datachannelpack->wPacketNo)) == 0){
-                        m_check_idx += PACK_ORDER_SIZE;
+                        check_idx += PACK_ORDER_SIZE;
                         check_statues |= CHECK_STATUS_NO;
                         if(check_pack_type(head, check_len, &(m_tmp_datachannelpack->byCommandType)) == 0){
-                            m_check_idx += PACK_TYPE_SIZE;
+                            check_idx += PACK_TYPE_SIZE;
                             check_statues |= CHECK_STATUS_TYPE;
                             if(check_pack_size(head, check_len, &(m_tmp_datachannelpack->wDataLen)) == 0){
-                                m_check_idx += PACK_SIZE_SIZE;
+                                check_idx += PACK_SIZE_SIZE;
                                 check_statues |= CHECK_STATUS_SIZE;
                                 if(check_pack_content(head, check_len,
                                  m_tmp_datachannelpack->wDataLen, &(m_tmp_datachannelpack->pbyData)) == 0){
-                                     m_check_idx += m_tmp_datachannelpack->wDataLen;
+                                     check_idx += m_tmp_datachannelpack->wDataLen;
                                      check_statues |= CHECK_STATUS_CONTENT;
                                      int check_ret = check_pack_rear(head, check_len, m_tmp_datachannelpack->wDataLen);
                                      if( check_ret == 0 ){
-                                         m_check_idx += PACK_REAR_SIZE;
+                                         check_idx += PACK_REAR_SIZE;
                                          check_statues |= CHECK_STATUS_REAR;
                                      }else if(check_ret == -2){
-                                         m_check_idx += PACK_REAR_SIZE;
+                                         check_idx += PACK_REAR_SIZE;
                                          check_statues = CHECK_STATUS_INVALID;
                                      }else if(check_ret == -1){
                                          //没有发现包尾巴
@@ -283,7 +284,7 @@ std::vector<PDATACHANNELPACKET> CDataPacket::FilterPacket( const BYTE* pbyRecv, 
                     }
                 }else{
                     //没有找到包开始标志
-                    ++m_check_idx;
+                    ++check_idx;
                     continue;
                 }
             }
@@ -300,16 +301,17 @@ std::vector<PDATACHANNELPACKET> CDataPacket::FilterPacket( const BYTE* pbyRecv, 
                     delete m_tmp_datachannelpack;
                     m_tmp_datachannelpack = nullptr;
                 }
+                check_idx = head - m_pBuf + 1;
                 check_statues = CHECK_STATUS_BLANK;
             }else if(check_statues != CHECK_STATUS_BLANK){
                 //到尾巴还没收到完整的包,向前挪动
-                _ASSERT(m_check_idx==m_dwUsedSize);
                 if(head != m_pBuf){
                     BYTE* tmp = (BYTE*)calloc(check_len, 1);
                     memcpy(tmp, head, check_len);
                     memcpy(m_pBuf, tmp, check_len);
                     m_dwUsedSize = check_len;
                     free(tmp);
+                    break;
                 }
             }
         } //for end
@@ -370,6 +372,6 @@ void eEmuClient::DoRecvData(std::shared_ptr<eSocketShareData> sp){
     unsigned char szTmp[8192] = {0};
     unsigned int len = 0;
     while( len = sp->Read_RecvBuf(szTmp, sizeof(szTmp)), len > 0){
-        _datapacket.FilterPacket(szTmp, len);
+        std::vector<PDATACHANNELPACKET>packlist = _datapacket.FilterPacket(szTmp, len);
     }
 }

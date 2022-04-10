@@ -1,5 +1,6 @@
 
 #include "test.h"
+#include <cstdlib>
 #include <iostream>
 #include <mutex>
 #include <memory>
@@ -335,8 +336,25 @@ int test_package(){
     testpack.wPacketNo = 1;
     testpack.byCommandType = 3;
     CDataPacket cdp;
-    DWORD sz = 0;
-    data = cdp.BuildPacket(&testpack, sz);
-    cdp.FilterPacket(data, sz);
+    DWORD sz1 = 0;
+    data = cdp.BuildPacket(&testpack, sz1);
+
+    BYTE* data2 = gendata(600);
+    DATACHANNELPACKET testpack2;
+    testpack2.pbyData = data2;
+    testpack2.wDataLen = 600;
+    testpack2.wPacketNo = 2;
+    testpack2.byCommandType = 56;
+    CDataPacket cdp2;
+    DWORD sz2 = 0;
+    data2 = cdp2.BuildPacket(&testpack2, sz2);
+
+    
+    BYTE* sumdata = (BYTE*)calloc(sz1+sz2, 1);
+    memcpy(sumdata, data, sz1);
+    memcpy(sumdata+sz1, data2, sz2);
+
+    cdp.FilterPacket(sumdata, sz1+sz2-9);
+    cdp.FilterPacket(sumdata+sz1+sz2-9, 9);
     return 0;
 }
