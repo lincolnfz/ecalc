@@ -277,7 +277,17 @@ public:
 
 };
 
+int getn(){
+    static int i = 3;
+    --i;
+    return i;
+}
 int test_clientmanager(){
+    int len = 0;
+    while( len = getn(), len>0){
+        int i = 0;
+        i = 0;
+    }
     eEmuManager a;
     //a.hadleNotifyMsg(std::shared_ptr<eSocketShareData>(new eSocketShareData()));
     a.Start();

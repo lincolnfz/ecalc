@@ -45,7 +45,7 @@ protected:
     DWORD m_dwSize = 0;
     DWORD m_dwUsedSize = 0;
     DWORD m_check_idx = 0;
-    unsigned int m_check_statues = CHECK_STATUS_BLANK;
+    //unsigned int m_check_statues = CHECK_STATUS_BLANK;
     PDATACHANNELPACKET m_tmp_datachannelpack = nullptr;
 
     inline DWORD remain_size(){
