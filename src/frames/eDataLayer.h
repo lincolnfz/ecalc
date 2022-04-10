@@ -160,12 +160,12 @@ public:
     ERR_DATA_LAYER WriteInQueue_Msg(std::shared_ptr<META_Message> newData, const PRIORITY_LEVEL priority = PRIORITY_LEVEL::PRIORITY_LEVEL_MID){
         ERR_DATA_LAYER  err = ERR_ZERO;
         std::thread::id curr_tid = std::this_thread::get_id();
-        if(curr_tid == _in_tid){
+        if(curr_tid != _out_tid){
             _queue.PushMsg(newData, priority);
             std::unique_lock<std::mutex> lock(_data_lock);
             _thread_con.notify_one();
             lock.unlock();
-        }else{
+        }else if(curr_tid == _out_tid){
             //err = ERR_DIFFERENT_TID;
             _ASSERT(false);
             //direct writein queue????

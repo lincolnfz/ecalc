@@ -64,8 +64,13 @@ add_executable(main main.cpp test.cpp ${SRC} ${EMISC} ${ALGORITHM} ${UUID} ${FRA
 # 将hello动态库文件链接到可执行文件main
 # libevent链接到主程序
 set(LINK_LIBRARY "event.a")
-set(LINK_LIBRARY ${LINK_LIBRARY} "z.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "curl.a")
+
+##zlib静态库要放在curl.a后面链接
+set(LINK_LIBRARY ${LINK_LIBRARY} "z.a")
+
+#ssl 要放在crypto上面,否则链接符号找不到
+set(LINK_LIBRARY ${LINK_LIBRARY} "ssl.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "crypto.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "hiredis.a")
 set(LINK_LIBRARY ${LINK_LIBRARY} "spdlog.a")
