@@ -1,6 +1,9 @@
 #include "eEmuClient.h"
 #include <cstddef>
+#include <cstdlib>
+#include <memory>
 #include "./emisc/misctool.h"
+#include "emisc/etypedefine.h"
 
 #define PACKETHEAD		5
 
@@ -24,6 +27,8 @@ CDataPacket::~CDataPacket(void)
 #define PACK_HEAD_FLAG 0x02
 #define PACK_REAR_FLAG 0x03
 
+#define PACK_HEAD_SIZE 1
+
 #define PACK_ORDER_OFFSET 1
 #define PACK_ORDER_SIZE 2
 
@@ -35,18 +40,64 @@ CDataPacket::~CDataPacket(void)
 
 #define PACK_CONTENT_OFFSET 6
 
-inline long read_pack_size(BYTE* head, unsigned int len){
-    long size = -1;
-    if(*head == PACK_HEAD_FLAG){
-        if(len > PACK_SIZE_OFFSET + PACK_SIZE_SIZE){
-            memcpy(&size, head+PACK_SIZE_OFFSET, PACK_SIZE_SIZE);
-        }
-    }else{
-		size = -2;
-        _ASSERT(false);
+#define PACK_REAR_SIZE 1
+
+inline int CDataPacket::check_pack_head(BYTE* head, unsigned int len){
+    int err = -1;
+    if(head[0] == PACK_HEAD_FLAG){
+        err = 0;
     }
-    
-    return size;
+    return err;
+}
+
+inline int CDataPacket::CDataPacket::check_pack_no(BYTE* head, unsigned int len, unsigned short *no){
+    int err = -1;
+    if(len >= PACK_ORDER_OFFSET+PACK_ORDER_SIZE){
+        memcpy(no, head+PACK_ORDER_OFFSET, PACK_ORDER_SIZE);
+        err = 0;
+    }
+    return err;
+}
+
+int CDataPacket::check_pack_type(BYTE* head, unsigned int len, unsigned char *pack_type){
+    int err = -1;
+    if(len >= PACK_TYPE_OFFSET+PACK_TYPE_SIZE){
+        memcpy(pack_type, head+PACK_TYPE_OFFSET, PACK_TYPE_SIZE);
+        err = 0;
+    }
+    return err;
+}
+
+int CDataPacket::check_pack_size(BYTE* head, unsigned int len, unsigned short *size){
+    int err = -1;
+    if(len >= PACK_SIZE_OFFSET+PACK_SIZE_SIZE){
+        memcpy(size, head+PACK_SIZE_OFFSET, PACK_SIZE_SIZE);
+        err = 0;
+    }
+    return err;
+}
+
+int CDataPacket::check_pack_content(BYTE* head, unsigned int len, unsigned short dsize, unsigned char **ppData){
+    int err = -1;
+    _ASSERT(*ppData == nullptr);
+    if(len >= PACK_CONTENT_OFFSET+dsize){
+        *ppData = (BYTE*)calloc(dsize, 1);
+        memcpy(*ppData, head+PACK_CONTENT_OFFSET, dsize);
+        err = 0;
+    }
+    return err;
+}
+
+int CDataPacket::check_pack_rear(BYTE* head, unsigned int len, unsigned short dsize){
+    int err = -1;
+    if( len >= PACK_CONTENT_OFFSET+dsize+PACK_REAR_SIZE ){
+        if(head[PACK_CONTENT_OFFSET+dsize] == PACK_REAR_FLAG){
+            err = 0;
+        }else{
+            err = -2; //这是错误的包
+        }
+    }
+    return err;
 }
 
 /*
@@ -166,8 +217,8 @@ PDATACHANNELPACKET CDataPacket::FilterPacket( const BYTE* pbyRecv, const DWORD d
 }
 */
 
-PDATACHANNELPACKET CDataPacket::FilterPacket( const BYTE* pbyRecv, const DWORD dwRecvLen ){
-    PDATACHANNELPACKET pRet = nullptr;
+std::vector<PDATACHANNELPACKET> CDataPacket::FilterPacket( const BYTE* pbyRecv, const DWORD dwRecvLen ){
+    std::vector<PDATACHANNELPACKET> ret;
     if ( dwRecvLen > 0 ){
 		if( remain_size() < dwRecvLen ){
             DWORD minimum_request_size  = dwRecvLen - remain_size();
@@ -185,16 +236,85 @@ PDATACHANNELPACKET CDataPacket::FilterPacket( const BYTE* pbyRecv, const DWORD d
         memcpy(m_pBuf + m_dwUsedSize, pbyRecv, dwRecvLen);
         m_dwUsedSize += dwRecvLen;
 
-        for(; m_check_idx < m_dwUsedSize; ++m_check_idx){
-            if(m_statues == 0){
-                if(m_pBuf[m_check_idx] == PACK_HEAD_FLAG){
-                    read_pack_size(m_pBuf + m_check_idx, m_dwUsedSize - m_check_idx);
+        for(; m_check_idx < m_dwUsedSize; ){
+            BYTE* head = m_pBuf + m_check_idx;
+            unsigned int check_len = m_pBuf +m_dwUsedSize - head;
+            if (m_check_statues == CHECK_STATUS_BLANK) {
+                if(check_pack_head(head, check_len) == 0){
+                    m_tmp_datachannelpack = new DATACHANNELPACKET;
+                    m_check_idx += PACK_HEAD_SIZE;
+                    _ASSERT(m_tmp_datachannelpack);
+                    m_check_statues |= CHECK_STATUS_HEAD;
+                    if(check_pack_no(head, check_len, &(m_tmp_datachannelpack->wPacketNo)) == 0){
+                        m_check_idx += PACK_ORDER_SIZE;
+                        m_check_statues |= CHECK_STATUS_NO;
+                        if(check_pack_type(head, check_len, &(m_tmp_datachannelpack->byCommandType)) == 0){
+                            m_check_idx += PACK_TYPE_SIZE;
+                            m_check_statues |= CHECK_STATUS_TYPE;
+                            if(check_pack_size(head, check_len, &(m_tmp_datachannelpack->wDataLen)) == 0){
+                                m_check_idx += PACK_SIZE_SIZE;
+                                m_check_statues |= CHECK_STATUS_SIZE;
+                                if(check_pack_content(head, check_len,
+                                 m_tmp_datachannelpack->wDataLen, &(m_tmp_datachannelpack->pbyData))){
+                                     m_check_idx += m_tmp_datachannelpack->wDataLen;
+                                     m_check_statues |= CHECK_STATUS_CONTENT;
+                                     int check_ret = check_pack_rear(head, check_len, m_tmp_datachannelpack->wDataLen);
+                                     if( check_ret == 0 ){
+                                         m_check_idx += PACK_REAR_SIZE;
+                                         m_check_statues |= CHECK_STATUS_REAR;
+                                     }else if(check_ret == -2){
+                                         m_check_idx += PACK_REAR_SIZE;
+                                         m_check_statues = CHECK_STATUS_INVALID;
+                                     }else if(check_ret == -1){
+                                         //没有发现包尾巴
+                                     }
+                                }else{
+                                    //没有有效的包内容
+                                }
+                            }else{
+                                //没有找到包长度
+                            }
+                        }else{
+                            //没有找到包类型
+                        }
+                    }else{
+                        //没有查到包编号
+                    }
+                }else{
+                    //没有找到包开始标志
+                    ++m_check_idx;
+                    continue;
+                }
+            }
+
+            if( m_check_statues == CHECK_STATUS_FULL ){
+                _ASSERT(m_tmp_datachannelpack);
+                ret.push_back(m_tmp_datachannelpack);
+                m_tmp_datachannelpack = nullptr;
+                m_check_statues = CHECK_STATUS_BLANK;
+            }
+            else if(m_check_statues == CHECK_STATUS_INVALID){
+                _ASSERT(m_tmp_datachannelpack);
+                if(m_tmp_datachannelpack){
+                    delete m_tmp_datachannelpack;
+                    m_tmp_datachannelpack = nullptr;
+                }
+                m_check_statues = CHECK_STATUS_BLANK;
+            }else{
+                //到尾巴还没收到完整的包,向前挪动
+                _ASSERT(m_check_idx==m_dwUsedSize);
+                if(head != m_pBuf){
+                    BYTE* tmp = (BYTE*)calloc(check_len, 1);
+                    memcpy(tmp, head, check_len);
+                    memcpy(m_pBuf, tmp, check_len);
+                    m_dwUsedSize = check_len;
+                    free(tmp);
                 }
             }
         }
         
     }
-    return pRet;
+    return ret;
 }
 
 
@@ -206,15 +326,15 @@ BYTE* CDataPacket::BuildPacket( const PDATACHANNELPACKET pPacket, DWORD& dwRetLe
 	DWORD dwIndex = 0;
 	//包头
     pRet[dwIndex] = PACK_HEAD_FLAG;
-	dwIndex++;
+	++dwIndex;
 	//包序号
-	memcpy( &pRet[dwIndex], &pPacket->wPacketNo, 2 );
+	memcpy( &pRet[dwIndex], &pPacket->wPacketNo, PACK_ORDER_SIZE );
 	dwIndex+=2;
 	//包命令号
 	pRet[dwIndex] = pPacket->byCommandType;
-	dwIndex++;
+	++dwIndex;
 	//包长
-	memcpy( &pRet[dwIndex], &pPacket->wDataLen, 2 );
+	memcpy( &pRet[dwIndex], &pPacket->wDataLen, PACK_SIZE_SIZE );
 	dwIndex+=2;
 	//包数据
     if ( pPacket->wDataLen > 0 )
@@ -224,7 +344,7 @@ BYTE* CDataPacket::BuildPacket( const PDATACHANNELPACKET pPacket, DWORD& dwRetLe
     }
 	//包尾
     pRet[dwIndex] = PACK_REAR_FLAG;
-	dwIndex++;
+	++dwIndex;
     return pRet;
 }
 
