@@ -349,12 +349,23 @@ int test_package(){
     DWORD sz2 = 0;
     data2 = cdp2.BuildPacket(&testpack2, sz2);
 
+    BYTE* data3 = gendata(9000);
+    DATACHANNELPACKET testpack3;
+    testpack3.pbyData = data2;
+    testpack3.wDataLen = 9000;
+    testpack3.wPacketNo = 3;
+    testpack3.byCommandType = 43;
+    CDataPacket cdp3;
+    DWORD sz3 = 0;
+    data3 = cdp3.BuildPacket(&testpack3, sz3);
+
     
-    BYTE* sumdata = (BYTE*)calloc(sz1+sz2, 1);
+    BYTE* sumdata = (BYTE*)calloc(sz1+sz2+sz3, 1);
     memcpy(sumdata, data, sz1);
-    memcpy(sumdata+sz1, data2, sz2);
+    memcpy(sumdata+sz1, data2, sz2-9);
+    memcpy(sumdata+sz1+sz2-9, data3, sz3);
 
     cdp.FilterPacket(sumdata, sz1+sz2-9);
-    cdp.FilterPacket(sumdata+sz1+sz2-9, 9);
+    cdp.FilterPacket(sumdata+sz1+sz2-9, sz3);
     return 0;
 }
