@@ -21,6 +21,7 @@
 #include "./src/frames/PingPongFn.h"
 #include "./src/eEmuManager.h"
 #include <boost/functional/hash.hpp>
+#include "./src/eEmuClient.h"
 
 std::mutex g_mutex;
 
@@ -317,5 +318,25 @@ int test_fncb(){
     unsigned int hash_val = string_hash("43242");
     hash_val = string_hash("43242");
     fncb aa;
+    return 0;
+}
+
+BYTE* gendata(unsigned short size){
+    BYTE* d = nullptr;
+    d = (BYTE*)calloc(size, 1);
+    return d;
+}
+
+int test_package(){
+    BYTE* data = gendata(200);
+    DATACHANNELPACKET testpack;
+    testpack.pbyData = data;
+    testpack.wDataLen = 200;
+    testpack.wPacketNo = 1;
+    testpack.byCommandType = 3;
+    CDataPacket cdp;
+    DWORD sz = 0;
+    data = cdp.BuildPacket(&testpack, sz);
+    cdp.FilterPacket(data, sz);
     return 0;
 }

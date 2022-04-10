@@ -59,7 +59,7 @@ inline int CDataPacket::CDataPacket::check_pack_no(BYTE* head, unsigned int len,
     return err;
 }
 
-int CDataPacket::check_pack_type(BYTE* head, unsigned int len, unsigned char *pack_type){
+inline int CDataPacket::check_pack_type(BYTE* head, unsigned int len, unsigned char *pack_type){
     int err = -1;
     if(len >= PACK_TYPE_OFFSET+PACK_TYPE_SIZE){
         memcpy(pack_type, head+PACK_TYPE_OFFSET, PACK_TYPE_SIZE);
@@ -68,7 +68,7 @@ int CDataPacket::check_pack_type(BYTE* head, unsigned int len, unsigned char *pa
     return err;
 }
 
-int CDataPacket::check_pack_size(BYTE* head, unsigned int len, unsigned short *size){
+inline int CDataPacket::check_pack_size(BYTE* head, unsigned int len, unsigned short *size){
     int err = -1;
     if(len >= PACK_SIZE_OFFSET+PACK_SIZE_SIZE){
         memcpy(size, head+PACK_SIZE_OFFSET, PACK_SIZE_SIZE);
@@ -77,7 +77,7 @@ int CDataPacket::check_pack_size(BYTE* head, unsigned int len, unsigned short *s
     return err;
 }
 
-int CDataPacket::check_pack_content(BYTE* head, unsigned int len, unsigned short dsize, unsigned char **ppData){
+inline int CDataPacket::check_pack_content(BYTE* head, unsigned int len, unsigned short dsize, unsigned char **ppData){
     int err = -1;
     _ASSERT(*ppData == nullptr);
     if(len >= PACK_CONTENT_OFFSET+dsize){
@@ -88,7 +88,7 @@ int CDataPacket::check_pack_content(BYTE* head, unsigned int len, unsigned short
     return err;
 }
 
-int CDataPacket::check_pack_rear(BYTE* head, unsigned int len, unsigned short dsize){
+inline int CDataPacket::check_pack_rear(BYTE* head, unsigned int len, unsigned short dsize){
     int err = -1;
     if( len >= PACK_CONTENT_OFFSET+dsize+PACK_REAR_SIZE ){
         if(head[PACK_CONTENT_OFFSET+dsize] == PACK_REAR_FLAG){
@@ -256,7 +256,7 @@ std::vector<PDATACHANNELPACKET> CDataPacket::FilterPacket( const BYTE* pbyRecv, 
                                 m_check_idx += PACK_SIZE_SIZE;
                                 check_statues |= CHECK_STATUS_SIZE;
                                 if(check_pack_content(head, check_len,
-                                 m_tmp_datachannelpack->wDataLen, &(m_tmp_datachannelpack->pbyData))){
+                                 m_tmp_datachannelpack->wDataLen, &(m_tmp_datachannelpack->pbyData)) == 0){
                                      m_check_idx += m_tmp_datachannelpack->wDataLen;
                                      check_statues |= CHECK_STATUS_CONTENT;
                                      int check_ret = check_pack_rear(head, check_len, m_tmp_datachannelpack->wDataLen);
@@ -312,7 +312,8 @@ std::vector<PDATACHANNELPACKET> CDataPacket::FilterPacket( const BYTE* pbyRecv, 
                     free(tmp);
                 }
             }
-        }
+        } //for end
+
         if(check_statues == CHECK_STATUS_BLANK || check_statues == CHECK_STATUS_INVALID){
             m_dwUsedSize = 0;
         }
@@ -325,21 +326,21 @@ std::vector<PDATACHANNELPACKET> CDataPacket::FilterPacket( const BYTE* pbyRecv, 
 BYTE* CDataPacket::BuildPacket( const PDATACHANNELPACKET pPacket, DWORD& dwRetLen )
 {
     BYTE* pRet = nullptr;
-	dwRetLen = pPacket->wDataLen + 2 + PACKETHEAD;
+	dwRetLen = PACK_HEAD_SIZE + PACK_ORDER_SIZE + PACK_TYPE_SIZE + PACK_SIZE_SIZE + pPacket->wDataLen + PACK_REAR_SIZE;
     pRet = (BYTE*)calloc( dwRetLen, 1 );
 	DWORD dwIndex = 0;
 	//包头
     pRet[dwIndex] = PACK_HEAD_FLAG;
-	++dwIndex;
+	dwIndex += PACK_HEAD_SIZE;
 	//包序号
 	memcpy( &pRet[dwIndex], &pPacket->wPacketNo, PACK_ORDER_SIZE );
-	dwIndex+=2;
+	dwIndex+=PACK_ORDER_SIZE;
 	//包命令号
 	pRet[dwIndex] = pPacket->byCommandType;
-	++dwIndex;
+	dwIndex += PACK_TYPE_SIZE;
 	//包长
 	memcpy( &pRet[dwIndex], &pPacket->wDataLen, PACK_SIZE_SIZE );
-	dwIndex+=2;
+	dwIndex+=PACK_SIZE_SIZE;
 	//包数据
     if ( pPacket->wDataLen > 0 )
     {
@@ -348,7 +349,7 @@ BYTE* CDataPacket::BuildPacket( const PDATACHANNELPACKET pPacket, DWORD& dwRetLe
     }
 	//包尾
     pRet[dwIndex] = PACK_REAR_FLAG;
-	++dwIndex;
+	dwIndex += PACK_REAR_SIZE;
     return pRet;
 }
 

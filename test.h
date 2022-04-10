@@ -19,3 +19,5 @@ int test_module();
 int test_clientmanager();
 
 int test_fncb();
+
+int test_package();

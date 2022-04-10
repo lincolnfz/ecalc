@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <boost/crc.hpp>
 
 #define GUID_KEY_LEN 37
 std::string CreateGuid();
