@@ -14,3 +14,4 @@ void E_ASSERT(const bool);
             E_ASSERT(expr); \
             }
             
+std::string generate_guid();
