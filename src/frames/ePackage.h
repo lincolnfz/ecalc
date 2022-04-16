@@ -88,3 +88,9 @@ public:
     void PushCB(CB, unsigned int, std::string, void*);
     unsigned int _session_key = 0; //param_1
 };
+
+class eWebRequestData{
+public:
+    eWebRequestData();
+    virtual ~eWebRequestData();
+};

@@ -1,4 +1,6 @@
 #include "eTcpClientsManager.h"
+#include <thread>
+#include <unistd.h>
 
 eTcpClientsManager::eTcpClientsManager(){
 
@@ -8,7 +10,8 @@ eTcpClientsManager::~eTcpClientsManager(){
 
 }
 
-void eTcpClientsManager::Start(){
+std::thread eTcpClientsManager::Start(){
+    unsigned int n_cpu_core = sysconf(_SC_NPROCESSORS_ONLN);
     _gule_self.Init(&_tcp_srv, this);
 
     TClsMemFnDelegate_3Param<void, unsigned int, std::string, void*> close_cb;
@@ -19,14 +22,15 @@ void eTcpClientsManager::Start(){
     send_cb.BindRaw(this, &eTcpClientsManager::notify_send_status_cb);
     _tcp_srv.RegisterSendStatus(send_cb);
 
-    _gule_self.RunMsgPump();
+    std::thread thd = _gule_self.RunMsgPump();
+    return thd;
 }
 
-void eTcpClientsManager::hadleNotifyMsg(std::shared_ptr<eSocketShareData> msg){
+void eTcpClientsManager::handleNotifyMsg(std::shared_ptr<eSocketShareData> msg){
 
     msg->RunIfExec();
 
-    //ModuleBase<eSocketShareData>::hadleNotifyMsg(msg);
+    //ModuleBase<eSocketShareData>::handleNotifyMsg(msg);
 }
 
 void eTcpClientsManager::SendData(const unsigned int key, const unsigned char* msg, const unsigned int msg_len, void* user_args){

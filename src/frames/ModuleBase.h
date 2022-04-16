@@ -44,7 +44,11 @@ public:
 		return m_FunctionMap.insert( std::make_pair(string_hash( pFunctionName ) , functoin ) ).second;
 	}*/
 
-	virtual void hadleNotifyMsg(std::shared_ptr<T_MSG>) override{
+	virtual void handleNotifyMsg(std::shared_ptr<T_MSG>) override{
+		
+	}
+
+	virtual void handleCheckTimer() override{
 		
 	}
 

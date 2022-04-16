@@ -38,20 +38,19 @@ struct client_ctx{
 struct tcpClient{
     evutil_socket_t fd;
     struct bufferevent *bev;
-    struct event *write_ev;
-    struct event *notify_close_ev;
+    //struct event *write_ev;
+    //struct event *notify_close_ev;
     client_ctx *ctx;
     unsigned int Key;
     std::shared_ptr<eSocketShareData> sp_Package;
     void* args;
 
-    tcpClient(evutil_socket_t fd, struct bufferevent *bev, struct event *write_ev,
-             struct event *notify_close_ev, client_ctx* ctx, const unsigned int key){
+    tcpClient(evutil_socket_t fd, struct bufferevent *bev, client_ctx* ctx, const unsigned int key){
         this->fd = fd;
         this->Key = key;
         this->bev = bev;
-        this->write_ev = write_ev;
-        this->notify_close_ev = notify_close_ev;
+        //this->write_ev = nullptr;
+        //this->notify_close_ev = nullptr;
         this->ctx = ctx;
         sp_Package = std::make_shared<eSocketShareData>();
         args = nullptr; //回调时传递的上下文现在没有用到
@@ -60,10 +59,10 @@ struct tcpClient{
     ~tcpClient(){
         if(this->bev)
             bufferevent_free(this->bev);
-        if(this->write_ev)
+        /*if(this->write_ev)
             event_free(this->write_ev);
         if(this->notify_close_ev)
-            event_free(this->notify_close_ev);
+            event_free(this->notify_close_ev);*/
         if(this->ctx)
             delete this->ctx;
     }
@@ -92,9 +91,9 @@ protected:
     static void conn_readcb(struct bufferevent *bev, void *user_data);
     static void conn_writecb(struct bufferevent *bev, void *user_data);
     static void conn_eventcb(struct bufferevent *bev, short events, void *user_data);
-    static void client_notify_sendmsg_cb(int fd, short events, void* arg);
+    static void client_notify_sendmsg_cb(evutil_socket_t fd, short events, void* arg);
     static void notify_close_client_cb(int fd, short events, void* arg);
-    bool freeClient(const unsigned int key, const int code);
+    bool freeClient(const unsigned int key, const int code, void *resv);
 
 private:
     struct event_base *_base;

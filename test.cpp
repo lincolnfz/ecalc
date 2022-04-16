@@ -23,6 +23,10 @@
 #include "./src/eEmuManager.h"
 #include <boost/functional/hash.hpp>
 #include "./src/eEmuClient.h"
+#include "./src/DataPacket.h"
+#include "./src/frames/eWebInterface.h"
+#include "./src/frames/ePriority_Message_Queue.h"
+#include "./src/emisc/elog.h"
 
 std::mutex g_mutex;
 
@@ -134,7 +138,7 @@ int thread_product_test() {
     return 0;
 }
 
-eDataLayer<Data>::Priority_Message_Queue test_queue;
+ePriority_Message_Queue<Data> test_queue;
 
 void create_data(std::condition_variable* q_con){
     long idd = syscall(SYS_gettid);
@@ -254,8 +258,10 @@ class newsermod: public ModuleBase<eSocketShareData>{
 public:
     newsermod() = default;
     ~newsermod() = default;
-    void hadleNotifyMsg(std::shared_ptr<eSocketShareData> msg) override{
+    void handleNotifyMsg(std::shared_ptr<eSocketShareData> msg) override{
     }
+
+    
 };
 
 int test_module(){
@@ -291,8 +297,9 @@ int test_clientmanager(){
         i = 0;
     }
     eEmuManager a;
-    //a.hadleNotifyMsg(std::shared_ptr<eSocketShareData>(new eSocketShareData()));
-    a.Start();
+    //a.handleNotifyMsg(std::shared_ptr<eSocketShareData>(new eSocketShareData()));
+    std::thread thd = a.Start();
+    thd.join();
     return 0;
 }
 
@@ -310,7 +317,7 @@ fncb::fncb(){
     REGISTER_RESPONSE_FUNCTION(fncb, recv);
     //TClsMemFnDelegate_2Param<void, char*, unsigned int> fn;
     //fn.BindRaw(this, &fncb::recv);
-    bool b = _tmp_fn.isbind();
+    //bool b = _response_tmp_fn.isbind();
     int i = 0;
 }
 
@@ -329,6 +336,12 @@ BYTE* gendata(unsigned short size){
 }
 
 int test_package(){
+    eEmuClient client(655, nullptr);
+    char sz[] = "aaa454sd58";
+    char szz2[] = "dsfdsa454sd58";
+    client.testreqresponse(5, sz);
+    client.testreqresponse(7, szz2);
+
     BYTE* data = gendata(200);
     DATACHANNELPACKET testpack;
     testpack.pbyData = data;
@@ -367,5 +380,15 @@ int test_package(){
 
     cdp.FilterPacket(sumdata, sz1+sz2-9);
     cdp.FilterPacket(sumdata+sz1+sz2-9, sz3);
+    return 0;
+}
+
+int test_webinterface(){
+    ELOG("%s , %d", "lhhh", 878);
+    eWebInterface web;
+    //web.RunMsgPump();
+    //std::thread t = web.Run();
+    //web.WriteInQueue_Msg(std::shared_ptr<eWebRequestData>(new eWebRequestData));
+    //t.join();
     return 0;
 }

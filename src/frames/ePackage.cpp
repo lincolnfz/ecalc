@@ -218,3 +218,11 @@ void eSocketShareData::PushCB(CB cb,
     std::unique_ptr<CB_ENTRY> ptr(new CB_ENTRY(cb, id, param, rev));
     _cb_list.push_back(std::move(ptr));
 }
+
+eWebRequestData::eWebRequestData(){
+
+}
+
+eWebRequestData::~eWebRequestData(){
+
+}

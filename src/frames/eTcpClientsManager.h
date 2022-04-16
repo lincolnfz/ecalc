@@ -2,16 +2,17 @@
 #include "eDataLayer.h"
 #include "ePackage.h"
 #include "eTcpSrvLayer.h"
-#include "ModuleBase.h"
+#include <thread>
 
-class eTcpClientsManager : public eDataLayer<eSocketShareData>::I_Process_Data_Base{ // ModuleBase<eSocketShareData>{
+class eTcpClientsManager : public eDataLayer<eSocketShareData>::I_Process_Data_Base{
 
 public:
     eTcpClientsManager();
     virtual ~eTcpClientsManager();
 
-    virtual void Start();
-    virtual void hadleNotifyMsg(std::shared_ptr<eSocketShareData>) override;
+    virtual std::thread Start();
+    virtual void handleNotifyMsg(std::shared_ptr<eSocketShareData>) override;
+    virtual void handleCheckTimer() override = 0;
 
     virtual void SendData(const unsigned int key, const unsigned char* msg, const unsigned int msg_len, void* user_args = nullptr);
     virtual void CloseRemote(const unsigned int key, void* user_args = nullptr);

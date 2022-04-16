@@ -6,10 +6,10 @@
 #include <thread>
 #include <condition_variable>
 #include <chrono>
+#include "ePriority_Message_Queue.h"
 
 template<class META_Message>
 class eDataLayer{
-
 public:
     enum ERR_DATA_LAYER{
         ERR_ZERO = 0,
@@ -33,8 +33,9 @@ public:
         virtual ~I_Process_Data_Base(){
         };
 
-        //hadleNotifyMsg 工作在eDataLayer线程
-        virtual void hadleNotifyMsg(std::shared_ptr<META_Message>) = 0;
+        //handleNotifyMsg 工作在eDataLayer线程
+        virtual void handleNotifyMsg(std::shared_ptr<META_Message>) = 0;
+        virtual void handleCheckTimer() = 0;
     };
 
     class I_Generate_Data_Base{
@@ -55,64 +56,6 @@ private:
 #else
 public:
 #endif
-    //消息队列类
-    class Priority_Message_Queue{
-    private:
-        struct Entry{
-            std::shared_ptr<META_Message> pMsg;
-            int priority;
-            ~Entry(){
-            };
-        };
-    
-        struct Compare_Messages {
-            bool operator () (const Entry *left , const Entry * right) {
-                return (left->priority < right->priority);
-            }
-        };  
-    
-    typedef std::priority_queue<Entry*, std::vector<Entry*>, Compare_Messages>
-                Message_Queue_Type;
-    
-    Message_Queue_Type _message_Queue;
-    std::mutex _Queue_lock;
-        
-    public:
-        Priority_Message_Queue() = default;
-        ~Priority_Message_Queue() = default;
-        void PushMsg(std::shared_ptr<META_Message> pMsg, int priority) {
-            std::unique_lock<std::mutex> guard(_Queue_lock);
-            // Make an entry
-            Entry *entry = new Entry;
-            entry->pMsg = pMsg;
-            entry->priority = priority;
-            // Insert the element according to its priority
-            _message_Queue.push(entry);
-        }
-        
-        std::shared_ptr<META_Message> PullMsg() {
-            std::unique_lock<std::mutex> guard(_Queue_lock);
-            std::shared_ptr<META_Message> pMsg;
-            
-            // Check if the message queue is not empty
-            if (!_message_Queue.empty()) {
-                // Queue is not empty so get a pointer to the
-                // first message in the queue
-                Entry* top_item = _message_Queue.top();
-                pMsg = top_item->pMsg;
-                
-                // Now remove the pointer from the message queue
-                _message_Queue.pop();
-                delete top_item;
-            }
-            return pMsg;
-        }
-        
-        const size_t Get_Length() {
-            std::unique_lock<std::mutex> guard(_Queue_lock);
-            return _message_Queue.size();
-        } 
-    }; //Priority_Message_Queue over.
 
 public:
     eDataLayer(){
@@ -128,7 +71,7 @@ public:
         _out = out;
     }
 
-    void RunMsgPump(){
+    std::thread RunMsgPump(){
         _ASSERT(_in);
         _ASSERT(_out);
         eDataLayer<META_Message> *self = this;
@@ -137,23 +80,26 @@ public:
         _out_tid = std::this_thread::get_id();
         while(true){
             std::unique_lock<std::mutex> lock(_data_lock);
+            _out->handleCheckTimer();
             while(_queue.Get_Length() > 0){
                 std::shared_ptr<META_Message> msg = _queue.PullMsg();
                 if(msg){
                     //收到数据提交处理
                     if(_out){
-                        _out->hadleNotifyMsg(msg);
+                        _out->handleNotifyMsg(msg);
                     }
                 }
                 //std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
-            while(_queue.Get_Length() == 0){
+            //while(_queue.Get_Length() == 0){
                 //有可能收到假事件,所以再加上列队长度判断
-                _thread_con.wait(lock);
-            }
+                //auto now = std::chrono::system_clock::now();
+                _thread_con.wait_for(lock, std::chrono::seconds(1));
+            //}
         }
         //gen_data_thread.get_id();
-        gen_data_thread.join();
+        //gen_data_thread.join();
+        return gen_data_thread;
     }
 
     // in模块(外部数据)写进来的
@@ -175,7 +121,8 @@ public:
     
 
 private:
-    Priority_Message_Queue _queue;
+    //Priority_Message_Queue _queue;
+    ePriority_Message_Queue<META_Message> _queue;
 
     //数据流向
     //  _in --->--->-->---> _out

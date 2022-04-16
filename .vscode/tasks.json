@@ -12,7 +12,7 @@
             ]
         },
         {
-            "label": "make",
+            "label": "make_build",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -22,7 +22,7 @@
             ]
         },
         {
-            "label": "ninja",
+            "label": "ninja_build",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -36,7 +36,7 @@
             "dependsOrder": "sequence",
             "dependsOn":[
                 "cmake",
-                "ninja"
+                "ninja_build"
             ]
         }
     ],

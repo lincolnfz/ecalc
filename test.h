@@ -21,3 +21,5 @@ int test_clientmanager();
 int test_fncb();
 
 int test_package();
+
+int test_webinterface();

@@ -31,6 +31,7 @@ add_definitions(${LLVM_DEFINITIONS})  ##LLVM SCOPE
 # 将/usr/include/myincludefolder 和 ./include 添加到头文件搜索路径
 include_directories(${CMAKE_SOURCE_DIR}/../include ./include)
 include_directories(${CMAKE_SOURCE_DIR}/src/3rd/include ./include)
+include_directories(${CMAKE_SOURCE_DIR}/src/3rd/libevent/include ./include)
 include_directories(${LLVM_INCLUDE_DIRS}) ##LLVM SCOPE
 
 # 将/usr/lib/mylibfolder 和 ./lib 添加到库文件搜索路径
@@ -64,6 +65,8 @@ add_executable(main main.cpp test.cpp ${SRC} ${EMISC} ${ALGORITHM} ${UUID} ${FRA
 # 将hello动态库文件链接到可执行文件main
 # libevent链接到主程序
 set(LINK_LIBRARY "event.a")
+set(LINK_LIBRARY ${LINK_LIBRARY} "event_pthreads.a")
+
 set(LINK_LIBRARY ${LINK_LIBRARY} "curl.a")
 
 ##zlib静态库要放在curl.a后面链接
