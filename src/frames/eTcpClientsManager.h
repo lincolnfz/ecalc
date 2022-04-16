@@ -10,7 +10,7 @@ public:
     eTcpClientsManager();
     virtual ~eTcpClientsManager();
 
-    virtual std::thread Start();
+    virtual void Start();
     virtual void handleNotifyMsg(std::shared_ptr<eSocketShareData>) override;
     virtual void handleCheckTimer() override = 0;
 

@@ -9,9 +9,8 @@ eEmuManager::~eEmuManager(){
 
 }
 
-std::thread eEmuManager::Start(){
-    std::thread thd = eTcpClientsManager::Start();
-    return thd;
+void eEmuManager::Start(){
+    eTcpClientsManager::Start();
 }
 
 void eEmuManager::SendData(const unsigned int key, const unsigned char* msg, const unsigned int msg_len, void* user_args){

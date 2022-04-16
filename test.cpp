@@ -298,8 +298,7 @@ int test_clientmanager(){
     }
     eEmuManager a;
     //a.handleNotifyMsg(std::shared_ptr<eSocketShareData>(new eSocketShareData()));
-    std::thread thd = a.Start();
-    thd.join();
+    a.Start();
     return 0;
 }
 

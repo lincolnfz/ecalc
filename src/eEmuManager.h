@@ -11,7 +11,7 @@ class eEmuManager : public eTcpClientsManager{
 public:
     eEmuManager();
     virtual ~eEmuManager();
-    virtual std::thread Start() override;
+    virtual void Start() override;
     
     virtual void SendData(const unsigned int key, const unsigned char* msg, const unsigned int msg_len, void* user_args = nullptr) override;
     virtual void CloseRemote(const unsigned int key, void* user_args = nullptr) override;

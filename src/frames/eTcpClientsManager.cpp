@@ -10,7 +10,7 @@ eTcpClientsManager::~eTcpClientsManager(){
 
 }
 
-std::thread eTcpClientsManager::Start(){
+void eTcpClientsManager::Start(){
     unsigned int n_cpu_core = sysconf(_SC_NPROCESSORS_ONLN);
     _gule_self.Init(&_tcp_srv, this);
 
@@ -22,8 +22,7 @@ std::thread eTcpClientsManager::Start(){
     send_cb.BindRaw(this, &eTcpClientsManager::notify_send_status_cb);
     _tcp_srv.RegisterSendStatus(send_cb);
 
-    std::thread thd = _gule_self.RunMsgPump();
-    return thd;
+    _gule_self.RunMsgPump();
 }
 
 void eTcpClientsManager::handleNotifyMsg(std::shared_ptr<eSocketShareData> msg){

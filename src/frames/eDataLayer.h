@@ -71,7 +71,7 @@ public:
         _out = out;
     }
 
-    std::thread RunMsgPump(){
+    void RunMsgPump(){
         _ASSERT(_in);
         _ASSERT(_out);
         eDataLayer<META_Message> *self = this;
@@ -99,7 +99,6 @@ public:
         }
         //gen_data_thread.get_id();
         //gen_data_thread.join();
-        return gen_data_thread;
     }
 
     // in模块(外部数据)写进来的
